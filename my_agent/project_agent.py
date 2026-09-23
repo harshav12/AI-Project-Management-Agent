@@ -1,11 +1,3 @@
-# It should handle questions like
-    # Project status
-    # Currently active projects
-    # highest risk
-    # who manages Project Alpha? 
-
-
-
 import json
 
 from ollama import chat
@@ -16,9 +8,6 @@ from my_agent.tools_new import (
     get_project_updates,
     get_project_metrics
 )
-
-
-
 
 
 # ============================================================
@@ -33,12 +22,10 @@ project_tools = {
 }
 
 
-
-
-
 # ============================================================
 # SYSTEM PROMPT
 # ============================================================
+
 PROJECT_SYSTEM_PROMPT = """
 You are a Project Specialist Agent.
 
@@ -104,9 +91,6 @@ IMPORTANT OPERATING RULES:
 Your final response must answer the user's request directly and should be
 based only on the information collected from the project tools.
 """
-
-
-
 
 
 # ============================================================
@@ -214,14 +198,6 @@ For FINISH, use:
 """
 
 
-
-
-
-
-
-
-
-
 # ============================================================
 # PLAN CREATION
 # ============================================================
@@ -261,17 +237,10 @@ Return only the plan.
     return response.message.content or ""
 
 
-
-
-
-
-
-
-
-
 # ============================================================
 # OBSERVE TOOL RESULT
 # ============================================================
+
 def observe_project_result(
     current_plan,
     tool_name,
@@ -313,18 +282,11 @@ def observe_project_result(
 
     except json.JSONDecodeError:
 
-        # If the observation response is invalid,
-        # do not assume that the task is finished.
-
         return {
             "decision": "ERROR",
             "reason": "Observation response could not be parsed safely.",
             "revised_plan": ""
         }
-
-
-
-
 
 
 # ============================================================
@@ -372,26 +334,6 @@ what could and could not be determined.
     return response.message.content or ""
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 # ============================================================
 # MAIN PROJECT AGENT
 # ============================================================
@@ -403,9 +345,6 @@ def run_project_agent(user_query, max_iterations=10):
     # --------------------------------------------------------
 
     current_plan = create_project_plan(user_query)
-
-    print("\n========== PROJECT AGENT PLAN ==========\n")
-    print(current_plan)
 
     executed_calls = set()
     trace = []
@@ -522,13 +461,6 @@ Do not repeat an identical tool call.
 
         if call_signature in executed_calls:
 
-            print("\nWARNING: DUPLICATE TOOL CALL")
-            print(
-                "Project Agent attempted to repeat "
-                "the same tool call."
-            )
-            print("Stopping safely.")
-
             return {
                 "success": False,
                 "agent": "project_agent",
@@ -580,16 +512,6 @@ Do not repeat an identical tool call.
             "result": result
         })
 
-        print(
-            f"\n========== PROJECT AGENT ITERATION "
-            f"{iteration + 1} =========="
-        )
-
-        print(f"Tool: {tool_name}")
-        print(f"Arguments: {arguments}")
-        print("Result:")
-        print(result)
-
         # ----------------------------------------------------
         # 3. OBSERVE
         # ----------------------------------------------------
@@ -602,12 +524,7 @@ Do not repeat an identical tool call.
         )
 
         decision = observation.get("decision", "ERROR")
-        reason = observation.get("reason", "")
         revised_plan = observation.get("revised_plan", "")
-
-        print("\n========== PROJECT AGENT OBSERVATION ==========")
-        print(f"Decision: {decision}")
-        print(f"Reason: {reason}")
 
         # ----------------------------------------------------
         # 4. DECISION
@@ -635,18 +552,7 @@ Do not repeat an identical tool call.
 
                 current_plan = revised_plan
 
-                print(
-                    "\n========== PROJECT AGENT REPLANNED ==========\n"
-                )
-
-                print(current_plan)
-
             else:
-
-                print(
-                    "\nWARNING: REPLAN requested but no revised "
-                    "plan was provided."
-                )
 
                 current_plan = (
                     current_plan
@@ -656,16 +562,9 @@ Do not repeat an identical tool call.
 
         elif decision == "CONTINUE":
 
-            print(
-                "\nPROJECT AGENT: Continuing current plan."
-            )
+            continue
 
         else:
-
-            print(
-                "\nWARNING: Invalid observation decision. "
-                "Stopping safely."
-            )
 
             return {
                 "success": False,
