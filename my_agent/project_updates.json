@@ -1,0 +1,236 @@
+[
+  {
+    "update_id":"U001",
+    "project_id":"P001",
+    "update_date":"2026-09-14",
+    "description":"API work is behind schedule and two critical items remain overdue.",
+    "risk_level":"high"
+  },
+  {
+    "update_id":"U002",
+    "project_id":"P001",
+    "update_date":"2026-08-20",
+    "description":"Initial development was progressing normally.",
+    "risk_level":"low"
+  },
+  {
+    "update_id":"U003",
+    "project_id":"P001",
+    "update_date":"2026-09-10",
+    "description":"Testing resources are constrained due to competing work.",
+    "risk_level":"medium"
+  },
+
+  {
+    "update_id":"U004",
+    "project_id":"P002",
+    "update_date":"2026-09-13",
+    "description":"Development is progressing according to plan.",
+    "risk_level":"low"
+  },
+  {
+    "update_id":"U005",
+    "project_id":"P002",
+    "update_date":"2026-08-25",
+    "description":"Some requirements changed but the team absorbed the change.",
+    "risk_level":"medium"
+  },
+  {
+    "update_id":"U006",
+    "project_id":"P002",
+    "update_date":"2026-07-30",
+    "description":"Project kickoff completed successfully.",
+    "risk_level":"low"
+  },
+
+  {
+    "update_id":"U007",
+    "project_id":"P003",
+    "update_date":"2026-09-14",
+    "description":"Multiple delivery milestones are slipping and engineering capacity is constrained.",
+    "risk_level":"high"
+  },
+  {
+    "update_id":"U008",
+    "project_id":"P003",
+    "update_date":"2026-09-01",
+    "description":"Several tasks are trending beyond their original estimates.",
+    "risk_level":"high"
+  },
+  {
+    "update_id":"U009",
+    "project_id":"P003",
+    "update_date":"2026-06-15",
+    "description":"Project started with no major issues.",
+    "risk_level":"low"
+  },
+
+  {
+    "update_id":"U010",
+    "project_id":"P004",
+    "update_date":"2026-09-12",
+    "description":"Design work is progressing and no major blockers are reported.",
+    "risk_level":"low"
+  },
+  {
+    "update_id":"U011",
+    "project_id":"P004",
+    "update_date":"2026-08-10",
+    "description":"A minor UX dependency caused a short delay.",
+    "risk_level":"medium"
+  },
+  {
+    "update_id":"U012",
+    "project_id":"P004",
+    "update_date":"2026-07-20",
+    "description":"Project started successfully.",
+    "risk_level":"low"
+  },
+
+  {
+    "update_id":"U013",
+    "project_id":"P005",
+    "update_date":"2026-09-11",
+    "description":"Project is progressing steadily.",
+    "risk_level":"low"
+  },
+  {
+    "update_id":"U014",
+    "project_id":"P005",
+    "update_date":"2026-08-15",
+    "description":"Team completed the initial milestone.",
+    "risk_level":"low"
+  },
+
+  {
+    "update_id":"U015",
+    "project_id":"P006",
+    "update_date":"2026-09-14",
+    "description":"Critical delivery risks remain due to repeated overdue tasks.",
+    "risk_level":"critical"
+  },
+  {
+    "update_id":"U016",
+    "project_id":"P006",
+    "update_date":"2026-09-05",
+    "description":"Several tasks have exceeded their estimated effort.",
+    "risk_level":"high"
+  },
+  {
+    "update_id":"U017",
+    "project_id":"P006",
+    "update_date":"2026-06-25",
+    "description":"Project began on schedule.",
+    "risk_level":"low"
+  },
+
+  {
+    "update_id":"U018",
+    "project_id":"P007",
+    "update_date":"2026-09-13",
+    "description":"Work is progressing with no significant issues.",
+    "risk_level":"low"
+  },
+  {
+    "update_id":"U019",
+    "project_id":"P007",
+    "update_date":"2026-08-25",
+    "description":"A dependency was resolved without schedule impact.",
+    "risk_level":"medium"
+  },
+
+  {
+    "update_id":"U020",
+    "project_id":"P008",
+    "update_date":"2026-08-01",
+    "description":"Project completed successfully.",
+    "risk_level":"low"
+  },
+  {
+    "update_id":"U021",
+    "project_id":"P008",
+    "update_date":"2026-07-15",
+    "description":"Final testing was completed.",
+    "risk_level":"low"
+  },
+
+  {
+    "update_id":"U022",
+    "project_id":"P009",
+    "update_date":"2026-09-01",
+    "description":"Project completed and handed over.",
+    "risk_level":"low"
+  },
+  {
+    "update_id":"U023",
+    "project_id":"P009",
+    "update_date":"2026-08-20",
+    "description":"Final acceptance completed.",
+    "risk_level":"low"
+  },
+
+  {
+    "update_id":"U024",
+    "project_id":"P010",
+    "update_date":"2026-09-14",
+    "description":"Several high-priority tasks are overdue and effort is exceeding estimates.",
+    "risk_level":"high"
+  },
+  {
+    "update_id":"U025",
+    "project_id":"P010",
+    "update_date":"2026-09-05",
+    "description":"The team reported increasing delivery pressure.",
+    "risk_level":"medium"
+  },
+  {
+    "update_id":"U026",
+    "project_id":"P010",
+    "update_date":"2026-07-25",
+    "description":"Project kickoff completed successfully.",
+    "risk_level":"low"
+  },
+
+  {
+    "update_id":"U027",
+    "project_id":"P006",
+    "update_date":"2026-07-01",
+    "description":"Early planning indicated a low delivery risk.",
+    "risk_level":"low"
+  },
+  {
+    "update_id":"U028",
+    "project_id":"P003",
+    "update_date":"2026-07-10",
+    "description":"Early progress was strong and the project was considered low risk.",
+    "risk_level":"low"
+  },
+  {
+    "update_id":"U029",
+    "project_id":"P005",
+    "update_date":"2026-06-01",
+    "description":"Pre-launch planning identified a possible staffing constraint.",
+    "risk_level":"medium"
+  },
+  {
+    "update_id":"U030",
+    "project_id":"P002",
+    "update_date":"2026-09-14",
+    "description":"No blockers reported in the latest stakeholder review.",
+    "risk_level":"low"
+  },
+  {
+    "update_id":"U031",
+    "project_id":"P007",
+    "update_date":"2026-09-01",
+    "description":"One delivery dependency is being monitored.",
+    "risk_level":"medium"
+  },
+  {
+    "update_id":"U032",
+    "project_id":"P010",
+    "update_date":"2026-08-01",
+    "description":"Initial planning suggested the project was low risk.",
+    "risk_level":"low"
+  }
+]

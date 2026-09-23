@@ -1,0 +1,132 @@
+[
+  {
+    "memory_id": "M001",
+    "user_id": "U001",
+    "memory_type": "preference",
+    "subject_type": "project",
+    "subject_id": "P001",
+    "value": "not a priority",
+    "status": "inactive",
+    "updated_at": "2026-09-16"
+  },
+  {
+    "memory_id": "M002",
+    "user_id": "U001",
+    "memory_type": "preference",
+    "subject_type": "project",
+    "subject_id": "P003",
+    "value": "priority",
+    "status": "active",
+    "updated_at": "2026-09-16"
+  },
+  {
+    "memory_id": "M003",
+    "user_id": "U001",
+    "memory_type": "conversation_context",
+    "subject_type": "project",
+    "subject_id": "P003",
+    "value": "Most recently discussed project",
+    "status": "active",
+    "updated_at": "2026-09-16"
+  },
+  {
+    "memory_id": "M004",
+    "user_id": "U001",
+    "memory_type": "conversation_context",
+    "subject_type": "task",
+    "subject_id": "T025",
+    "value": "Previous task discussed",
+    "status": "active",
+    "updated_at": "2026-09-16"
+  },
+  {
+    "memory_id": "M005",
+    "user_id": "U002",
+    "memory_type": "preference",
+    "subject_type": "project",
+    "subject_id": "P006",
+    "value": "priority",
+    "status": "active",
+    "updated_at": "2026-09-12"
+  },
+  {
+    "memory_id": "M006",
+    "user_id": "U002",
+    "memory_type": "preference",
+    "subject_type": "risk",
+    "subject_id": "all_projects",
+    "value": "Show critical risks first",
+    "status": "active",
+    "updated_at": "2026-09-12"
+  },
+  {
+    "memory_id": "M007",
+    "user_id": "U002",
+    "memory_type": "conversation_context",
+    "subject_type": "project",
+    "subject_id": "P006",
+    "value": "Most recently discussed project",
+    "status": "active",
+    "updated_at": "2026-09-15"
+  },
+  {
+    "memory_id": "M008",
+    "user_id": "U003",
+    "memory_type": "preference",
+    "subject_type": "project",
+    "subject_id": "P002",
+    "value": "priority",
+    "status": "active",
+    "updated_at": "2026-09-14"
+  },
+  {
+    "memory_id": "M009",
+    "user_id": "U003",
+    "memory_type": "conversation_context",
+    "subject_type": "task",
+    "subject_id": "T015",
+    "value": "Previous task discussed",
+    "status": "active",
+    "updated_at": "2026-09-15"
+  },
+  {
+    "memory_id": "M010",
+    "user_id": "U004",
+    "memory_type": "preference",
+    "subject_type": "project",
+    "subject_id": "P004",
+    "value": "priority",
+    "status": "active",
+    "updated_at": "2026-09-11"
+  },
+  {
+    "memory_id": "M011",
+    "user_id": "U004",
+    "memory_type": "conversation_context",
+    "subject_type": "project",
+    "subject_id": "P004",
+    "value": "Most recently discussed project",
+    "status": "active",
+    "updated_at": "2026-09-15"
+  },
+  {
+    "memory_id": "M012",
+    "user_id": "U004",
+    "memory_type": "preference",
+    "subject_type": "project",
+    "subject_id": "P001",
+    "value": "Do not prioritize",
+    "status": "active",
+    "updated_at": "2026-09-15"
+  },
+  {
+    "memory_id": "M013",
+    "user_id": "U001",
+    "memory_type": "preference",
+    "subject_type": "project",
+    "subject_id": "P002",
+    "value": "priority",
+    "status": "active",
+    "updated_at": "2026-09-16"
+  }
+]

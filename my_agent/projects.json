@@ -1,0 +1,92 @@
+[
+  {
+    "project_id":"P001",
+    "project_name":"Project Alpha",
+    "manager_id":"E005",
+    "status":"active",
+    "start_date":"2026-06-01",
+    "deadline":"2026-09-30",
+    "budget":180000
+  },
+  {
+    "project_id":"P002",
+    "project_name":"Project Beta",
+    "manager_id":"E011",
+    "status":"active",
+    "start_date":"2026-07-01",
+    "deadline":"2026-10-15",
+    "budget":150000
+  },
+  {
+    "project_id":"P003",
+    "project_name":"Project Gamma",
+    "manager_id":"E006",
+    "status":"active",
+    "start_date":"2026-05-15",
+    "deadline":"2026-09-25",
+    "budget":220000
+  },
+  {
+    "project_id":"P004",
+    "project_name":"Project Delta",
+    "manager_id":"E003",
+    "status":"active",
+    "start_date":"2026-07-15",
+    "deadline":"2026-11-10",
+    "budget":120000
+  },
+  {
+    "project_id":"P005",
+    "project_name":"Project Epsilon",
+    "manager_id":"E099",
+    "status":"active",
+    "start_date":"2026-08-01",
+    "deadline":"2026-10-30",
+    "budget":95000
+  },
+  {
+    "project_id":"P006",
+    "project_name":"Project Zeta",
+    "manager_id":"E006",
+    "status":"active",
+    "start_date":"2026-06-20",
+    "deadline":"2026-09-20",
+    "budget":175000
+  },
+  {
+    "project_id":"P007",
+    "project_name":"Project Eta",
+    "manager_id":"E011",
+    "status":"active",
+    "start_date":"2026-08-15",
+    "deadline":"2026-12-01",
+    "budget":130000
+  },
+  {
+    "project_id":"P008",
+    "project_name":"Project Theta",
+    "manager_id":"E018",
+    "status":"completed",
+    "start_date":"2026-03-01",
+    "deadline":"2026-07-31",
+    "budget":160000
+  },
+  {
+    "project_id":"P009",
+    "project_name":"Project Iota",
+    "manager_id":"E004",
+    "status":"completed",
+    "start_date":"2026-04-10",
+    "deadline":"2026-08-31",
+    "budget":110000
+  },
+  {
+    "project_id":"P010",
+    "project_name":"Project Kappa",
+    "manager_id":"E015",
+    "status":"active",
+    "start_date":"2026-07-20",
+    "deadline":"2026-10-05",
+    "budget":140000
+  }
+]

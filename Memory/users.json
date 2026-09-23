@@ -1,0 +1,30 @@
+[
+  {
+    "user_id": "U001",
+    "name": "Alice Johnson",
+    "role": "Project Manager",
+    "department": "Management",
+    "status": "active"
+  },
+  {
+    "user_id": "U002",
+    "name": "Brian Smith",
+    "role": "Team Lead",
+    "department": "Engineering",
+    "status": "active"
+  },
+  {
+    "user_id": "U003",
+    "name": "Carla Davis",
+    "role": "Product Manager",
+    "department": "Product",
+    "status": "active"
+  },
+  {
+    "user_id": "U004",
+    "name": "Daniel Wilson",
+    "role": "Executive Sponsor",
+    "department": "Management",
+    "status": "active"
+  }
+]
