@@ -1,7 +1,9 @@
 # It should handle questions like
-# - Which tasks are overdue?
-# - What tasks are pending for Project gamma?
+    # Which tasks are overdue? 
+    # What tasks are pending for Project gamma?
+# It should handle questions like:
 # - What tasks belong to Project Alpha?
+# - What tasks are overdue?
 # - What tasks are completed?
 # - What tasks are in progress?
 # - What are the pending tasks for Project Alpha?
@@ -346,6 +348,9 @@ def run_task_agent(user_query, max_iterations=10):
 
     current_plan = create_task_plan(user_query)
 
+    print("\n========== TASK AGENT PLAN ==========\n")
+    print(current_plan)
+
     executed_calls = set()
     trace = []
 
@@ -462,6 +467,13 @@ Do not repeat an identical tool call.
 
         if call_signature in executed_calls:
 
+            print("\nWARNING: DUPLICATE TOOL CALL")
+            print(
+                "Task Agent attempted to repeat "
+                "the same tool call."
+            )
+            print("Stopping safely.")
+
             return {
                 "success": False,
                 "agent": "task_agent",
@@ -513,6 +525,16 @@ Do not repeat an identical tool call.
             "result": result
         })
 
+        print(
+            f"\n========== TASK AGENT ITERATION "
+            f"{iteration + 1} =========="
+        )
+
+        print(f"Tool: {tool_name}")
+        print(f"Arguments: {arguments}")
+        print("Result:")
+        print(result)
+
         # ----------------------------------------------------
         # 3. OBSERVE
         # ----------------------------------------------------
@@ -525,7 +547,12 @@ Do not repeat an identical tool call.
         )
 
         decision = observation.get("decision", "ERROR")
+        reason = observation.get("reason", "")
         revised_plan = observation.get("revised_plan", "")
+
+        print("\n========== TASK AGENT OBSERVATION ==========")
+        print(f"Decision: {decision}")
+        print(f"Reason: {reason}")
 
         # ----------------------------------------------------
         # 4. DECISION
@@ -553,7 +580,18 @@ Do not repeat an identical tool call.
 
                 current_plan = revised_plan
 
+                print(
+                    "\n========== TASK AGENT REPLANNED ==========\n"
+                )
+
+                print(current_plan)
+
             else:
+
+                print(
+                    "\nWARNING: REPLAN requested but no revised "
+                    "plan was provided."
+                )
 
                 current_plan = (
                     current_plan
@@ -563,9 +601,16 @@ Do not repeat an identical tool call.
 
         elif decision == "CONTINUE":
 
-            continue
+            print(
+                "\nTASK AGENT: Continuing current plan."
+            )
 
         else:
+
+            print(
+                "\nWARNING: Invalid observation decision. "
+                "Stopping safely."
+            )
 
             return {
                 "success": False,

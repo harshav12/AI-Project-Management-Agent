@@ -1,8 +1,7 @@
-# It should handle questions like
-# Who is assigned to this task
-# What is employee's information
-# Which employees are working on project gamma
-
+# It should handle questions like 
+# Who is assinged to this task 
+# What is employee's information? 
+# Which employess are working on project gamma? 
 
 # ============================================================
 # EMPLOYEE SPECIALIST AGENT
@@ -352,6 +351,9 @@ def run_employee_agent(user_query, max_iterations=10):
 
     current_plan = create_employee_plan(user_query)
 
+    print("\n========== EMPLOYEE AGENT PLAN ==========\n")
+    print(current_plan)
+
     executed_calls = set()
     trace = []
 
@@ -467,6 +469,13 @@ Do not repeat an identical tool call.
 
         if call_signature in executed_calls:
 
+            print("\nWARNING: DUPLICATE TOOL CALL")
+            print(
+                "Employee Agent attempted to repeat "
+                "the same tool call."
+            )
+            print("Stopping safely.")
+
             return {
                 "success": False,
                 "agent": "employee_agent",
@@ -518,6 +527,16 @@ Do not repeat an identical tool call.
             "result": result
         })
 
+        print(
+            f"\n========== EMPLOYEE AGENT ITERATION "
+            f"{iteration + 1} =========="
+        )
+
+        print(f"Tool: {tool_name}")
+        print(f"Arguments: {arguments}")
+        print("Result:")
+        print(result)
+
         # ----------------------------------------------------
         # 3. OBSERVE
         # ----------------------------------------------------
@@ -530,7 +549,12 @@ Do not repeat an identical tool call.
         )
 
         decision = observation.get("decision", "ERROR")
+        reason = observation.get("reason", "")
         revised_plan = observation.get("revised_plan", "")
+
+        print("\n========== EMPLOYEE AGENT OBSERVATION ==========")
+        print(f"Decision: {decision}")
+        print(f"Reason: {reason}")
 
         # ----------------------------------------------------
         # 4. DECISION
@@ -558,7 +582,18 @@ Do not repeat an identical tool call.
 
                 current_plan = revised_plan
 
+                print(
+                    "\n========== EMPLOYEE AGENT REPLANNED ==========\n"
+                )
+
+                print(current_plan)
+
             else:
+
+                print(
+                    "\nWARNING: REPLAN requested but no revised "
+                    "plan was provided."
+                )
 
                 current_plan = (
                     current_plan
@@ -568,9 +603,16 @@ Do not repeat an identical tool call.
 
         elif decision == "CONTINUE":
 
-            continue
+            print(
+                "\nEMPLOYEE AGENT: Continuing current plan."
+            )
 
         else:
+
+            print(
+                "\nWARNING: Invalid observation decision. "
+                "Stopping safely."
+            )
 
             return {
                 "success": False,
