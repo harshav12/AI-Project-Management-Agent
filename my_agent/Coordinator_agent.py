@@ -259,89 +259,106 @@ You are the observation component of a Coordinator Agent.
 ORIGINAL USER REQUEST:
 {user_query}
 
-SPECIALIST RESULT:
-{json.dumps(trace[-1] if trace else {}, indent=2, default=str)}
+CURRENT COORDINATOR PLAN:
+{current_plan}
 
-Your ONLY job is to determine whether the specialist result
-already answers the ORIGINAL USER REQUEST.
+MEMORY CONTEXT:
+{json.dumps(memory_context, indent=2, default=str)}
 
-IMPORTANT:
+SPECIALIST EXECUTION TRACE:
+{json.dumps(trace, indent=2, default=str)}
 
-- Judge ONLY what the user explicitly asked for.
-- Do NOT add extra information that the user did not request.
-- Do NOT use extra fields returned by the specialist to create
-  new requirements.
-- If the requested information is present in the specialist result,
-  return FINISH.
-- Return CONTINUE only if information explicitly requested by the
-  user is still missing.
-- Return CLARIFY only if the ORIGINAL USER REQUEST is genuinely
-  ambiguous.
-- Return REPLAN only if the current approach cannot answer the
-  user's request.
+Your task is to determine whether the Coordinator should FINISH,
+CONTINUE, CLARIFY, or REPLAN.
+
+Use ONLY the ORIGINAL USER REQUEST to determine what information
+the user requested.
+
+DECISION RULES:
+
+1. FINISH
+Return FINISH only when the specialist results contain all information
+required to answer the ORIGINAL USER REQUEST.
+
+2. CONTINUE
+Return CONTINUE when:
+- the request is clear,
+- the specialist results provide only part of the requested information,
+  and
+- another available specialist can provide the missing information.
+
+If a previous specialist result contains an identifier or other useful
+information needed by another specialist, recognize that as a valid
+dependency for the next step.
 
 Example:
+If the user asks for project status AND in-progress tasks, and the
+Project Agent successfully resolves the project to project_id P006,
+but the tasks have not yet been retrieved, return CONTINUE.
 
-User request:
-"What is the budget of Project Alpha?"
+3. CLARIFY
+Return CLARIFY only when the ORIGINAL USER REQUEST itself is genuinely
+ambiguous and the Coordinator cannot determine what the user is asking.
 
-Specialist result:
-Project Alpha
-budget: 180000
-manager_id: E005
-status: active
+Missing information that can be obtained from another specialist is
+NOT a reason to return CLARIFY.
 
-Correct decision:
-FINISH
+4. REPLAN
+Return REPLAN only when the current execution approach is no longer
+appropriate, such as when a required tool or specialist cannot
+reasonably complete the requested objective.
 
-Reason:
-"The requested budget is present in the specialist result."
+IMPORTANT RULES:
 
-Another example:
+- Do not invent additional user requirements.
+- Do not treat a successful partial specialist result as a complete answer.
+- Do not return FINISH merely because one specialist completed successfully.
+- Consider all specialist results together.
+- Do not request a specialist that is unnecessary.
+- Do not repeat an identical specialist call.
+- If another specialist is required, return CONTINUE.
+- Keep the reason concise and factual.
+- revised_plan should describe what information still needs to be obtained
+  or how the Coordinator should proceed next.
+- Return ONLY valid JSON.
+- Do NOT use Markdown.
+- Do NOT include any text before or after the JSON.
+- Use exactly these three keys:
+  "decision", "reason", "revised_plan".
 
-User request:
-"Who manages Project Alpha and what is their role?"
+VALID OUTPUT FORMAT:
 
-Specialist result:
-Project Alpha
-manager_id: E005
-
-Correct decision:
-CONTINUE
-
-Reason:
-"The manager's name and role are explicitly requested but are
-not available yet."
-
-Return ONLY valid JSON.
-
-FINISH:
 {{
     "decision": "FINISH",
-    "reason": "The specialist result contains the information explicitly requested by the user.",
+    "reason": "All information required by the original request has been obtained.",
     "revised_plan": ""
 }}
 
-CONTINUE:
+OR
+
 {{
     "decision": "CONTINUE",
-    "reason": "Information explicitly requested by the user is still missing.",
-    "revised_plan": ""
+    "reason": "The project information was obtained, but the requested task information is still missing.",
+    "revised_plan": "Use the project identifier discovered by the Project Agent to retrieve the requested task information."
 }}
 
-CLARIFY:
+OR
+
 {{
     "decision": "CLARIFY",
-    "reason": "The original user request is genuinely ambiguous.",
+    "reason": "The original request is genuinely ambiguous.",
     "revised_plan": ""
 }}
 
-REPLAN:
+OR
+
 {{
     "decision": "REPLAN",
-    "reason": "The current execution approach cannot answer the user's request.",
-    "revised_plan": ""
+    "reason": "The current execution approach cannot complete the requested objective.",
+    "revised_plan": "Create a revised execution approach using the available specialists."
 }}
+
+Return ONLY the JSON object.
 """
 
     response = ollama.chat(
@@ -472,8 +489,7 @@ def run_coordinator(user_id, user_query, max_iterations=10):
     2. Creates an execution plan.
     3. Calls specialist agents.
     4. Observes specialist results.
-    5. Uses explicit handoffs between specialists when required.
-    6. Combines the results into a final answer.
+    5. Combines the results into a final answer.
     """
 
     if not user_id or not str(user_id).strip():
@@ -533,158 +549,19 @@ def run_coordinator(user_id, user_query, max_iterations=10):
     for iteration in range(1, max_iterations + 1):
 
         # -----------------------------------------------------
-        # Determine which specialist should be called
+        # Normal Coordinator tool selection
         # -----------------------------------------------------
 
-        forced_agent = None
-        forced_query = user_query
-
-        # If the previous observation explicitly requested a
-        # specialist handoff, honor that handoff instead of asking
-        # the model to choose the previous specialist again.
-        if trace:
-            last_observation = trace[-1].get("coordinator_observation", {})
-
-            if last_observation.get("decision") == "CONTINUE":
-
-                reason = str(
-                    last_observation.get("reason", "")
-                ).lower()
-
-                revised_plan = str(
-                    last_observation.get("revised_plan", "")
-                ).lower()
-
-                combined_handoff_text = (
-                    reason + " " + revised_plan
-                )
-
-                # -------------------------------------------------
-                # Project -> Employee handoff
-                # -------------------------------------------------
-
-                if "employee agent" in combined_handoff_text:
-
-                    employee_id = None
-
-                    # Look through previous specialist results
-                    # for an employee/manager ID.
-                    for previous_entry in trace:
-                        specialist_result = previous_entry.get(
-                            "result",
-                            {}
-                        )
-
-                        specialist_trace = specialist_result.get(
-                            "trace",
-                            []
-                        )
-
-                        for trace_item in specialist_trace:
-                            tool_result = trace_item.get(
-                                "result",
-                                {}
-                            )
-
-                            if isinstance(tool_result, dict):
-
-                                possible_id = (
-                                    tool_result.get("manager_id")
-                                    or tool_result.get("employee_id")
-                                )
-
-                                if possible_id:
-                                    employee_id = possible_id
-                                    break
-
-                        if employee_id:
-                            break
-
-                    if employee_id:
-
-                        forced_agent = "call_employee_agent"
-
-                        forced_query = (
-                            f"Retrieve the employee details for "
-                            f"employee ID {employee_id}, including "
-                            f"the employee's name, department, and role."
-                        )
-
-        # ---------------------------------------------------------
-        # If a handoff is required, execute it directly
-        # ---------------------------------------------------------
-
-        if forced_agent == "call_employee_agent":
-
-            agent_name = "employee_agent"
-
-            print(
-                f"\n========== SPECIALIST HANDOFF ==========\n"
-            )
-
-            print(
-                f"Coordinator is handing the request to "
-                f"Employee Agent using the previous specialist's result."
-            )
-
-            if agent_name in called_specialists:
-                print(
-                    "\nWARNING: Employee Agent has already been called."
-                )
-
-                break
-
-            called_specialists.add(agent_name)
-
-            print("\n========== SPECIALIST CALL "
-                  f"{len(called_specialists)} ==========\n")
-
-            print(
-                "Agent: call_employee_agent"
-            )
-
-            print(
-                f"Arguments: {{'user_query': '{forced_query}'}}"
-            )
-
-            specialist_result = call_employee_agent(
-                user_query=forced_query
-            )
-
-            print("Result:")
-            print(
-                json.dumps(
-                    specialist_result,
-                    indent=2
-                )
-            )
-
-            trace_entry = {
-                "agent": "call_employee_agent",
-                "arguments": {
-                    "user_query": forced_query
+        response = ollama.chat(
+            model="llama3.2:3b",
+            messages=[
+                {
+                    "role": "system",
+                    "content": COORDINATOR_SYSTEM_PROMPT
                 },
-                "result": specialist_result
-            }
-
-            trace.append(trace_entry)
-
-        else:
-
-            # -----------------------------------------------------
-            # Normal Coordinator tool selection
-            # -----------------------------------------------------
-
-            response = ollama.chat(
-                model="llama3.2:3b",
-                messages=[
-                    {
-                        "role": "system",
-                        "content": COORDINATOR_SYSTEM_PROMPT
-                    },
-                    {
-                        "role": "user",
-                        "content": f"""
+                {
+                    "role": "user",
+                    "content": f"""
 Original User Request:
 {user_query}
 
@@ -692,12 +569,13 @@ Current Coordinator Plan:
 {current_plan}
 
 Memory Context:
-{json.dumps(memory_context, indent=2)}
+{json.dumps(memory_context, indent=2, default=str)}
 
 Execution Trace:
-{json.dumps(trace, indent=2)}
+{json.dumps(trace, indent=2, default=str)}
 
-Choose the appropriate specialist agent.
+Your job is to choose the NEXT specialist action required to complete
+the ORIGINAL USER REQUEST.
 
 Available specialist agents:
 
@@ -706,7 +584,9 @@ Available specialist agents:
    - Project status
    - Project budget
    - Project deadlines
-   - Project manager ID
+   - Project manager information
+   - Project updates
+   - Project metrics
 
 2. call_task_agent
    - Tasks
@@ -720,65 +600,99 @@ Available specialist agents:
    - Employee department
    - Employee role
 
-Call ONLY the specialist required for the current request.
+IMPORTANT EXECUTION RULES:
 
-If the previous specialist result already provides the requested
-information, do not call another specialist.
+1. Use exactly ONE specialist call at a time.
+
+2. First inspect the ORIGINAL USER REQUEST, CURRENT COORDINATOR PLAN,
+   and EXECUTION TRACE before selecting the next specialist.
+
+3. The EXECUTION TRACE contains results from specialists that have
+   already been called. Treat those results as available information.
+
+4. If a previous specialist discovered an identifier or other information
+   required by another specialist, use that information when constructing
+   the next specialist request.
+
+   Examples:
+   - If a Project Agent resolves "Project Zeta" to project_id "P006",
+     and tasks for that project are still required, pass "P006" to the
+     Task Agent through its user_query.
+   - If a Project Agent returns manager_id "E006" and employee details
+     are required, pass "E006" to the Employee Agent through its
+     user_query.
+
+5. Do NOT ask a specialist to rediscover information that has already
+   been successfully obtained by a previous specialist.
+
+6. Do NOT call another specialist if the previous specialist results
+   already contain everything required by the ORIGINAL USER REQUEST.
+
+7. If the original request requires information from multiple domains,
+   continue with the next required specialist after the previous
+   specialist has completed.
+
+8. When calling a specialist, make the user_query specific enough for
+   that specialist to perform its task using information already
+   discovered by previous specialists.
+
+9. Never invent identifiers or other information. Only use identifiers
+   that appear in the memory context, coordinator plan, or specialist
+   execution trace.
+
+10. Do not repeat an identical specialist call.
+
+11. Do not repeatedly call a specialist merely because it was used
+    earlier. A specialist may be called again only when a genuinely
+    different request is required and the new call is necessary.
+
+12. The workflow must be dynamically determined from the user's request
+    and the information discovered during execution.
+
+13. Do NOT assume a fixed order such as:
+    Project Agent -> Task Agent -> Employee Agent.
+    The required order depends on the current request and discovered
+    information.
+
+For the current execution, choose the single next specialist call that
+moves the Coordinator closest to completing the ORIGINAL USER REQUEST.
 """
-                    }
-                ],
-                tools=list(coordinator_tools.values())
+                }
+            ],
+            tools=list(coordinator_tools.values())
+        )
+
+        # -----------------------------------------------------
+        # Handle tool call
+        # -----------------------------------------------------
+
+        if not response.message.tool_calls:
+
+            # No specialist call was requested.
+            # The Coordinator may already have enough information.
+            break
+
+        tool_call = response.message.tool_calls[0]
+
+        tool_name = tool_call.function.name
+        arguments = tool_call.function.arguments
+
+        # -----------------------------------------------------
+        # Duplicate protection
+        # -----------------------------------------------------
+
+        call_signature = (
+            tool_name,
+            json.dumps(
+                arguments,
+                sort_keys=True
             )
+        )
 
-            # -----------------------------------------------------
-            # Handle tool call
-            # -----------------------------------------------------
-
-            if not response.message.tool_calls:
-
-                # No specialist call was requested.
-                # The Coordinator may already have enough information.
-                break
-
-            tool_call = response.message.tool_calls[0]
-
-            tool_name = tool_call.function.name
-            arguments = tool_call.function.arguments
-
-            # -----------------------------------------------------
-            # Duplicate protection
-            # -----------------------------------------------------
-
-            call_signature = (
-                tool_name,
-                json.dumps(
-                    arguments,
-                    sort_keys=True
-                )
-            )
-
-            if call_signature in called_specialists:
-
-                print(
-                    "\nWARNING: DUPLICATE SPECIALIST CALL\n"
-                )
-
-                print(
-                    f"Agent: {tool_name}"
-                )
-
-                print(
-                    f"Arguments: {arguments}"
-                )
-
-                # Do not repeatedly call the same specialist.
-                break
-
-            called_specialists.add(call_signature)
+        if call_signature in called_specialists:
 
             print(
-                f"\n========== SPECIALIST CALL "
-                f"{len(called_specialists)} ==========\n"
+                "\nWARNING: DUPLICATE SPECIALIST CALL\n"
             )
 
             print(
@@ -789,52 +703,70 @@ information, do not call another specialist.
                 f"Arguments: {arguments}"
             )
 
-            # -----------------------------------------------------
-            # Execute specialist
-            # -----------------------------------------------------
+            # Do not repeatedly call the same specialist.
+            break
 
-            if tool_name == "call_project_agent":
+        called_specialists.add(call_signature)
 
-                specialist_result = call_project_agent(
-                    **arguments
-                )
+        print(
+            f"\n========== SPECIALIST CALL "
+            f"{len(called_specialists)} ==========\n"
+        )
 
-            elif tool_name == "call_task_agent":
+        print(
+            f"Agent: {tool_name}"
+        )
 
-                specialist_result = call_task_agent(
-                    **arguments
-                )
+        print(
+            f"Arguments: {arguments}"
+        )
 
-            elif tool_name == "call_employee_agent":
+        # -----------------------------------------------------
+        # Execute specialist
+        # -----------------------------------------------------
 
-                specialist_result = call_employee_agent(
-                    **arguments
-                )
+        if tool_name == "call_project_agent":
 
-            else:
-
-                specialist_result = {
-                    "success": False,
-                    "error": (
-                        f"Unknown specialist agent: {tool_name}"
-                    )
-                }
-
-            print("Result:")
-            print(
-                json.dumps(
-                    specialist_result,
-                    indent=2
-                )
+            specialist_result = call_project_agent(
+                **arguments
             )
 
-            trace_entry = {
-                "agent": tool_name,
-                "arguments": arguments,
-                "result": specialist_result
+        elif tool_name == "call_task_agent":
+
+            specialist_result = call_task_agent(
+                **arguments
+            )
+
+        elif tool_name == "call_employee_agent":
+
+            specialist_result = call_employee_agent(
+                **arguments
+            )
+
+        else:
+
+            specialist_result = {
+                "success": False,
+                "error": (
+                    f"Unknown specialist agent: {tool_name}"
+                )
             }
 
-            trace.append(trace_entry)
+        print("Result:")
+        print(
+            json.dumps(
+                specialist_result,
+                indent=2
+            )
+        )
+
+        trace_entry = {
+            "agent": tool_name,
+            "arguments": arguments,
+            "result": specialist_result
+        }
+
+        trace.append(trace_entry)
 
         # ---------------------------------------------------------
         # Observe specialist result

@@ -110,22 +110,30 @@ def get_tasks(project_id=None, status=None):
         normalized_id = project_id.strip().upper()
 
         if not normalized_id.startswith("P"):
-            raise ValueError("project_id must be a valid ID such as P001.")
+            raise ValueError(
+                "project_id must be a valid ID such as P001."
+            )
 
         filtered_tasks = [
             task
             for task in filtered_tasks
-            if str(task.get("project_id", "")).upper() == normalized_id
+            if str(task.get("project_id", "")).upper()
+            == normalized_id
         ]
 
     # Filter by task status if provided
     if status is not None:
-        normalized_status = status.strip().lower()
+        normalized_status = (
+            status.strip()
+            .lower()
+            .replace(" ", "_")
+        )
 
         filtered_tasks = [
             task
             for task in filtered_tasks
-            if str(task.get("status", "")).lower() == normalized_status
+            if str(task.get("status", "")).strip().lower()
+            == normalized_status
         ]
 
     return filtered_tasks
