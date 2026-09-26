@@ -1,7 +1,7 @@
 [
   {
     "memory_id": "M001",
-    "user_id": "U001",
+    "user_id": "E005",
     "memory_type": "preference",
     "subject_type": "project",
     "subject_id": "P001",
@@ -11,7 +11,7 @@
   },
   {
     "memory_id": "M002",
-    "user_id": "U001",
+    "user_id": "E005",
     "memory_type": "preference",
     "subject_type": "project",
     "subject_id": "P003",
@@ -21,7 +21,7 @@
   },
   {
     "memory_id": "M003",
-    "user_id": "U001",
+    "user_id": "E005",
     "memory_type": "conversation_context",
     "subject_type": "project",
     "subject_id": "P003",
@@ -31,7 +31,7 @@
   },
   {
     "memory_id": "M004",
-    "user_id": "U001",
+    "user_id": "E005",
     "memory_type": "conversation_context",
     "subject_type": "task",
     "subject_id": "T025",
@@ -41,7 +41,7 @@
   },
   {
     "memory_id": "M005",
-    "user_id": "U002",
+    "user_id": "E006",
     "memory_type": "preference",
     "subject_type": "project",
     "subject_id": "P006",
@@ -51,7 +51,7 @@
   },
   {
     "memory_id": "M006",
-    "user_id": "U002",
+    "user_id": "E006",
     "memory_type": "preference",
     "subject_type": "risk",
     "subject_id": "all_projects",
@@ -61,7 +61,7 @@
   },
   {
     "memory_id": "M007",
-    "user_id": "U002",
+    "user_id": "E006",
     "memory_type": "conversation_context",
     "subject_type": "project",
     "subject_id": "P006",
@@ -71,7 +71,7 @@
   },
   {
     "memory_id": "M008",
-    "user_id": "U003",
+    "user_id": "E011",
     "memory_type": "preference",
     "subject_type": "project",
     "subject_id": "P002",
@@ -81,7 +81,7 @@
   },
   {
     "memory_id": "M009",
-    "user_id": "U003",
+    "user_id": "E011",
     "memory_type": "conversation_context",
     "subject_type": "task",
     "subject_id": "T015",
@@ -91,7 +91,7 @@
   },
   {
     "memory_id": "M010",
-    "user_id": "U004",
+    "user_id": "E002",
     "memory_type": "preference",
     "subject_type": "project",
     "subject_id": "P004",
@@ -101,7 +101,7 @@
   },
   {
     "memory_id": "M011",
-    "user_id": "U004",
+    "user_id": "E002",
     "memory_type": "conversation_context",
     "subject_type": "project",
     "subject_id": "P004",
@@ -111,7 +111,7 @@
   },
   {
     "memory_id": "M012",
-    "user_id": "U004",
+    "user_id": "E002",
     "memory_type": "preference",
     "subject_type": "project",
     "subject_id": "P001",
@@ -121,7 +121,7 @@
   },
   {
     "memory_id": "M013",
-    "user_id": "U001",
+    "user_id": "E005",
     "memory_type": "preference",
     "subject_type": "project",
     "subject_id": "P002",

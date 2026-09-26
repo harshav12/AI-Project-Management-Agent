@@ -1,0 +1,35 @@
+{
+  "Project Manager": {
+    "permissions": [
+      "VIEW_PROJECT",
+      "VIEW_TASK",
+      "CREATE_TASK",
+      "UPDATE_TASK",
+      "VIEW_EMPLOYEE",
+      "VIEW_PROJECT_METRICS"
+    ]
+  },
+  "Tech Lead": {
+    "permissions": [
+      "VIEW_PROJECT",
+      "VIEW_TASK",
+      "CREATE_TASK",
+      "UPDATE_TASK",
+      "VIEW_EMPLOYEE",
+      "VIEW_PROJECT_METRICS"
+    ]
+  },
+  "Product Manager": {
+    "permissions": [
+      "VIEW_PROJECT",
+      "VIEW_TASK",
+      "VIEW_PROJECT_METRICS"
+    ]
+  },
+  "Software Engineer": {
+    "permissions": [
+      "VIEW_PROJECT",
+      "VIEW_TASK"
+    ]
+  }
+}

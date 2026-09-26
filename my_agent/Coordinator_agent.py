@@ -201,14 +201,34 @@ The plan must determine:
 
 1. Whether the supplied memory is relevant.
 2. Whether the request can be answered without a specialist agent.
-3. Which specialist agent is required.
+3. Which specialist agent or agents are required.
 4. Whether multiple specialist agents are required.
 5. Whether one agent's result will be needed by another agent.
 6. Whether clarification is required.
 
-Do not invent information.
+IMPORTANT SPECIALIST ROUTING RULE:
 
-Return the plan as plain text.
+- Each specialist is responsible for resolving information within its
+  own domain.
+- Project Agent is responsible for resolving project names to valid
+  project IDs.
+- If the user refers to a project by name and another specialist requires
+  the project ID, the Project Agent must be used to resolve the project
+  name first.
+- Do NOT use Task Agent or Employee Agent to resolve a project name.
+- Task Agent and Employee Agent should use a valid project ID when their
+  requested operation requires one.
+- If the Project Agent provides a project ID, reuse that ID when calling
+  another specialist.
+- Never invent, infer, or construct an identifier when it has not been
+  provided or resolved by an appropriate specialist.
+- This rule defines responsibility for information resolution; it does
+  NOT impose a fixed execution order.
+- The overall workflow must still be determined dynamically from the
+  user's request, available information, specialist capabilities, and
+  results obtained during execution.
+
+Do not invent information.
 """
 
     response = ollama.chat(
@@ -277,8 +297,8 @@ the user requested.
 DECISION RULES:
 
 1. FINISH
-Return FINISH only when the specialist results contain all information
-required to answer the ORIGINAL USER REQUEST.
+Return FINISH when the COMPLETE ORIGINAL USER REQUEST has been satisfied
+by the combined specialist results.
 
 2. CONTINUE
 Return CONTINUE when:
@@ -311,12 +331,22 @@ reasonably complete the requested objective.
 IMPORTANT RULES:
 
 - Do not invent additional user requirements.
-- Do not treat a successful partial specialist result as a complete answer.
+- Do not treat a successful partial specialist result as a complete answer
+  when another requested part is still missing.
 - Do not return FINISH merely because one specialist completed successfully.
-- Consider all specialist results together.
+- Consider ALL specialist results together before deciding whether the
+  ORIGINAL USER REQUEST is complete.
+- If multiple specialist results collectively provide all information
+  requested by the user, return FINISH.
 - Do not request a specialist that is unnecessary.
 - Do not repeat an identical specialist call.
-- If another specialist is required, return CONTINUE.
+- If another specialist is required because a specific part of the
+  ORIGINAL USER REQUEST is still missing, return CONTINUE.
+- Do not return CONTINUE merely because the original plan contains another
+  step. Return CONTINUE only when some requested information is actually
+  still missing.
+- A valid empty result can satisfy a request if it correctly answers what
+  the user asked for.
 - Keep the reason concise and factual.
 - revised_plan should describe what information still needs to be obtained
   or how the Coordinator should proceed next.
@@ -464,7 +494,7 @@ Rules:
                 "role": "user",
                 "content": prompt
             }
-        ],
+        ],    
         options={
             "temperature": 0,
             "num_ctx": 4096,
@@ -622,34 +652,46 @@ IMPORTANT EXECUTION RULES:
      are required, pass "E006" to the Employee Agent through its
      user_query.
 
-5. Do NOT ask a specialist to rediscover information that has already
+5. PROJECT NAME RESOLUTION:
+   - If the ORIGINAL USER REQUEST refers to a project by project name,
+     use the Project Agent to resolve that project name to a valid
+     project_id.
+   - Do NOT ask the Task Agent or Employee Agent to resolve a project
+     name into a project_id.
+   - Task Agent and Employee Agent should receive a valid project_id
+     when their requested operation requires a project identifier.
+   - Once the Project Agent has resolved the project name, reuse the
+     discovered project_id when calling another specialist.
+   - Never guess or construct a project_id from a project name.
+
+6. Do NOT ask a specialist to rediscover information that has already
    been successfully obtained by a previous specialist.
 
-6. Do NOT call another specialist if the previous specialist results
+7. Do NOT call another specialist if the previous specialist results
    already contain everything required by the ORIGINAL USER REQUEST.
 
-7. If the original request requires information from multiple domains,
+8. If the original request requires information from multiple domains,
    continue with the next required specialist after the previous
    specialist has completed.
 
-8. When calling a specialist, make the user_query specific enough for
+9. When calling a specialist, make the user_query specific enough for
    that specialist to perform its task using information already
    discovered by previous specialists.
 
-9. Never invent identifiers or other information. Only use identifiers
-   that appear in the memory context, coordinator plan, or specialist
-   execution trace.
+10. Never invent identifiers or other information. Only use identifiers
+    that appear in the memory context, coordinator plan, or specialist
+    execution trace.
 
-10. Do not repeat an identical specialist call.
+11. Do not repeat an identical specialist call.
 
-11. Do not repeatedly call a specialist merely because it was used
+12. Do not repeatedly call a specialist merely because it was used
     earlier. A specialist may be called again only when a genuinely
     different request is required and the new call is necessary.
 
-12. The workflow must be dynamically determined from the user's request
+13. The workflow must be dynamically determined from the user's request
     and the information discovered during execution.
 
-13. Do NOT assume a fixed order such as:
+14. Do NOT assume a fixed order such as:
     Project Agent -> Task Agent -> Employee Agent.
     The required order depends on the current request and discovered
     information.
