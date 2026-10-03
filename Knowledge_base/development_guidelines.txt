@@ -1,0 +1,32 @@
+Software Development Guidelines
+
+Code Review
+
+Software changes should undergo appropriate code review before being
+merged into the main development branch.
+
+Testing
+
+New functionality should be tested before release. Testing should cover
+the expected behavior of the functionality and important failure cases.
+
+Security
+
+Security-sensitive functionality should receive appropriate security
+review before production deployment.
+
+Deployment
+
+Production deployments should follow the approved deployment process.
+Required testing and reviews should be completed before deployment.
+
+Documentation
+
+Important software components, APIs, configuration, and deployment
+procedures should be documented so that the development team can maintain
+and operate the system effectively.
+
+Bug Management
+
+Production bugs should be investigated, prioritized according to their
+impact, and addressed through the normal development and testing process.ss

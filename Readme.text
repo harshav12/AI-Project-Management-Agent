@@ -1,0 +1,55 @@
+Architecture
+                # User
+                #   ↓
+                # Coordinator Agent
+                #   ↓
+                # Memory / Context
+                #   ↓
+                # Dynamic Agent Selection
+                #   ↓
+                # Specialist Agent
+                #   ↓
+                # LLM dynamically selects tool
+                #   ↓
+                # ┌─────────────────────────────┐
+                # │      GUARDRAIL LAYER        │
+                # │                             │
+                # │  1. Validate input          │
+                # │  2. Check permission/RBAC   │
+                # │  3. Detect sensitive action │
+                # │  4. Detect duplicate call   │
+                # │  5. Execute safely          │
+                # │  6. Handle tool failure     │
+                # │  7. Return controlled result│
+                # └─────────────────────────────┘
+                #   ↓
+                # Tool
+                #   ↓
+                # Result
+                #   ↓
+                # Agent observes result
+                #   ↓
+                # Continue / Replan / Finish
+
+
+
+New structure
+
+my_agent/
+│
+├── Coordinator_agent.py
+├── project_agent.py
+├── task_agent.py
+├── employee_agent.py
+│
+├── tools_new.py
+├── memory_tools.py
+│
+├── guardrails.py          ← NEW
+├── permissions.py         ← NEW
+│
+├── employees.json
+├── roles.json             ← NEW
+├── projects.json
+├── tasks.json
+└── project_updates.json

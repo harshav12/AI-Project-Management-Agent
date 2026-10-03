@@ -6,7 +6,8 @@
       "CREATE_TASK",
       "UPDATE_TASK",
       "VIEW_EMPLOYEE",
-      "VIEW_PROJECT_METRICS"
+      "VIEW_PROJECT_METRICS",
+      "VIEW_KNOWLEDGE_BASE"
     ]
   },
   "Tech Lead": {
@@ -16,20 +17,23 @@
       "CREATE_TASK",
       "UPDATE_TASK",
       "VIEW_EMPLOYEE",
-      "VIEW_PROJECT_METRICS"
+      "VIEW_PROJECT_METRICS",
+      "VIEW_KNOWLEDGE_BASE"
     ]
   },
   "Product Manager": {
     "permissions": [
       "VIEW_PROJECT",
       "VIEW_TASK",
-      "VIEW_PROJECT_METRICS"
+      "VIEW_PROJECT_METRICS",
+      "VIEW_KNOWLEDGE_BASE"
     ]
   },
   "Software Engineer": {
     "permissions": [
       "VIEW_PROJECT",
-      "VIEW_TASK"
+      "VIEW_TASK",
+      "VIEW_KNOWLEDGE_BASE"
     ]
   }
 }

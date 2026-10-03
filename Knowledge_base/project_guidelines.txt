@@ -1,0 +1,34 @@
+Project Management Guidelines
+
+Project Planning
+
+Every project should have a defined project manager, scope, expected
+completion date, and budget.
+
+Task Management
+
+Project tasks should have an assigned employee, status, priority, and
+due date whenever applicable.
+
+Task Priorities
+
+Task priorities should be used to indicate the relative importance of
+work. Critical and high-priority tasks should receive appropriate
+attention when planning project work.
+
+Deadline Management
+
+Teams should regularly compare task progress against planned due dates.
+Potential delays should be identified early.
+
+Project Risk Management
+
+Project risks should be reviewed together with current project progress.
+Repeated overdue tasks and missed milestones can indicate increased
+delivery risk.
+
+Project Completion
+
+A project should only be considered completed when the required project
+work has been completed and the appropriate completion activities have
+been performed.

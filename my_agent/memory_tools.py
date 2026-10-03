@@ -11,29 +11,29 @@ USERS_FILE = MEMORY_DIR / "users.json"
 USER_MEMORY_FILE = MEMORY_DIR / "user_memory.json"
 PROJECTS_FILE = PROJECT_ROOT / "my_agent" / "projects.json"
 
-with open(USERS_FILE, "r", encoding = "utf-8") as file:
+with open(USERS_FILE, "r", encoding="utf-8") as file:
     users = json.load(file)
 
-with open(USER_MEMORY_FILE, "r", encoding = "utf-8") as file:
+with open(USER_MEMORY_FILE, "r", encoding="utf-8") as file:
     user_memories = json.load(file)
 
-with open(PROJECTS_FILE, "r", encoding = "utf-8") as file:
+with open(PROJECTS_FILE, "r", encoding="utf-8") as file:
     projects = json.load(file)
 
 
 # get users
 def get_user(user_id):
-    "Return one user by user ID. "
+    "Return one user by user ID."
     for user in users:
         if user.get("user_id") == user_id:
             return user
 
     return None
 
-# get active memories
 
+# get active memories
 def get_active_memories(user_id):
-    """Return only active memories belonging to one user. """
+    """Return only active memories belonging to one user."""
     user = get_user(user_id)
 
     if user is None:
@@ -42,12 +42,13 @@ def get_active_memories(user_id):
     return [
         memory
         for memory in user_memories
-        if memory.get("user_id") == user_id 
+        if memory.get("user_id") == user_id
         and memory.get("status") == "active"
     ]
 
+
 # for relevant memories
-def get_relevant_memories(user_id, project_id = None, task_id = None):
+def get_relevant_memories(user_id, project_id=None, task_id=None):
     """Return active memories relevant to a project or task."""
     active_memories = get_active_memories(user_id)
 
@@ -58,25 +59,24 @@ def get_relevant_memories(user_id, project_id = None, task_id = None):
 
     for memory in active_memories:
         if project_id is not None:
-            if(
+            if (
                 memory.get("subject_type") == "project"
-                and memory.get("subject_id") == project_id ):
+                and memory.get("subject_id") == project_id
+            ):
+                relevant_memories.append(memory)
 
-                relevant_memories.append(memory)
-            
         if task_id is not None:
-            if(
+            if (
                 memory.get("subject_type") == "task"
-                and memory.get("subject_id") == task_id ):
+                and memory.get("subject_id") == task_id
+            ):
                 relevant_memories.append(memory)
-    
+
     return relevant_memories
 
 
 # get active memories relevant to a natural language request
-
 def get_relevant_memories_for_query(user_id, user_query):
-
     """Find active memories relevant to a natural-language request."""
     active_memories = get_active_memories(user_id)
     query = user_query.lower()
@@ -106,6 +106,10 @@ def get_relevant_memories_for_query(user_id, user_query):
         for phrase in [
             "priority",
             "priorities",
+            "prioritize",
+            "prioritise",
+            "prioritizing",
+            "prioritising",
             "focus",
             "focus on",
             "today",
@@ -121,7 +125,6 @@ def get_relevant_memories_for_query(user_id, user_query):
         )
 
     return relevant_memories
-
 
 
 def find_project_id_in_query(user_query):
@@ -142,7 +145,6 @@ def find_project_id_in_query(user_query):
 
 
 # get conversation context
-
 def get_conversation_context(user_id, user_query):
     """Return context for references such as 'that project' or 'the previous task'."""
     query = user_query.lower()
@@ -150,6 +152,9 @@ def get_conversation_context(user_id, user_query):
     reference_phrases = [
         "that project",
         "the previous project",
+        "most recently",
+        "recently discussed",
+        "last discussed",
         "that task",
         "the previous task",
     ]
@@ -226,7 +231,6 @@ def get_memory_context(user_id, user_query):
 
 
 # update preference
-
 def update_preference(
     user_id,
     project_id,

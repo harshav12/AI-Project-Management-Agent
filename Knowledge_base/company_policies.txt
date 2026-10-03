@@ -1,0 +1,33 @@
+Company Project Management Policies
+
+Project Monitoring Policy
+
+All active projects should be monitored regularly using project progress,
+task completion, deadlines, and identified risks.
+
+Overdue Task Policy
+
+A task is considered overdue when its due date has passed and the task has
+not been completed. Overdue tasks should be reviewed by the responsible
+project team.
+
+Critical Task Policy
+
+Critical-priority tasks require additional attention because delays in
+these tasks can have a significant impact on project delivery.
+
+Risk Escalation Policy
+
+Projects with repeated overdue tasks, significant delivery delays, or
+multiple critical issues should receive additional management attention.
+
+Project Update Policy
+
+Project updates should communicate meaningful changes in project progress,
+delivery risks, blockers, and important milestones.
+
+Project Review Policy
+
+Projects experiencing significant delays or repeated task issues should
+be reviewed to identify the cause of the problem and determine appropriate
+corrective actions.
