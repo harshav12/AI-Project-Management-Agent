@@ -89,6 +89,23 @@ st.markdown(
         margin-bottom: 8px;
     }
 
+    .info-note {
+        color: #777;
+        font-size: 0.82rem;
+        margin-top: 4px;
+        margin-bottom: 0;
+    }
+
+    .permission-allowed {
+        color: #28a745;
+        font-weight: 600;
+    }
+
+    .permission-denied {
+        color: #999;
+        font-weight: 500;
+    }
+
     .footer {
         text-align: center;
         color: #888;
@@ -124,6 +141,49 @@ gemini_models = [
     "gemini-3.5-flash",
     "gemini-3.1-flash-lite"
 ]
+
+# ==================================================
+# ROLE PERMISSIONS
+# ==================================================
+
+role_permissions = {
+    "Project Manager": {
+        "View Projects": True,
+        "View Tasks": True,
+        "Create Tasks": True,
+        "Update Tasks": True,
+        "View Employees": True,
+        "View Project Metrics": True,
+        "View Knowledge Base": True
+    },
+    "Tech Lead": {
+        "View Projects": True,
+        "View Tasks": True,
+        "Create Tasks": True,
+        "Update Tasks": True,
+        "View Employees": True,
+        "View Project Metrics": True,
+        "View Knowledge Base": True
+    },
+    "Product Manager": {
+        "View Projects": True,
+        "View Tasks": True,
+        "Create Tasks": False,
+        "Update Tasks": False,
+        "View Employees": False,
+        "View Project Metrics": True,
+        "View Knowledge Base": True
+    },
+    "Software Engineer": {
+        "View Projects": True,
+        "View Tasks": True,
+        "Create Tasks": False,
+        "Update Tasks": False,
+        "View Employees": False,
+        "View Project Metrics": False,
+        "View Knowledge Base": True
+    }
+}
 
 # ==================================================
 # SESSION STATE
@@ -366,6 +426,64 @@ st.markdown(
     """,
     unsafe_allow_html=True
 )
+
+# ==================================================
+# HOW TO USE & PERMISSIONS
+# ==================================================
+
+col1, col2 = st.columns(2)
+
+with col1:
+    with st.expander("📖 How to use"):
+        st.markdown(
+            """
+            Ask questions in natural language. The system routes your request
+            to the appropriate specialist agent.
+
+            **You can ask about:**
+
+            - 📁 **Projects** — status, managers, deadlines, budgets and risks
+            - 📋 **Tasks** — status, priorities, assignees, progress and due dates
+            - 👥 **Employees** — employee information, roles and departments
+            - 📊 **Project Metrics** — project-level performance and metrics
+            - 📚 **Guidelines & Policies** — company, project and development guidelines
+
+            **Examples:**
+            - *What is the current status of Project Alpha?*
+            - *Show me the overdue tasks.*
+            - *Who is working on this project?*
+            - *What are the development guidelines?*
+            - *Show me the project metrics.*
+            """
+        )
+
+with col2:
+    with st.expander("🔐 Your permissions"):
+        current_permissions = role_permissions.get(
+            user_role,
+            {}
+        )
+
+        st.markdown(
+            f"**Current role:** {user_role}"
+        )
+
+        for permission, allowed in current_permissions.items():
+            if allowed:
+                st.markdown(
+                    f'<div class="permission-allowed">✓ {permission}</div>',
+                    unsafe_allow_html=True
+                )
+            else:
+                st.markdown(
+                    f'<div class="permission-denied">✗ {permission}</div>',
+                    unsafe_allow_html=True
+                )
+
+        st.markdown(
+            '<p class="info-note">Some requests may be unavailable depending on your role and permissions.</p>',
+            unsafe_allow_html=True
+        )
 
 # ==================================================
 # DISPLAY CONVERSATION HISTORY
