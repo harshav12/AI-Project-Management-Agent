@@ -6,7 +6,6 @@ from pathlib import Path
 class Permission(str, Enum):
     VIEW_PROJECT = "VIEW_PROJECT"
     VIEW_TASK = "VIEW_TASK"
-    CREATE_TASK = "CREATE_TASK"
     UPDATE_TASK = "UPDATE_TASK"
     VIEW_EMPLOYEE = "VIEW_EMPLOYEE"
     VIEW_PROJECT_METRICS = "VIEW_PROJECT_METRICS"
@@ -75,7 +74,10 @@ TOOL_PERMISSIONS = {
     "get_employee": Permission.VIEW_EMPLOYEE,
     "get_project_metrics": Permission.VIEW_PROJECT_METRICS,
     "search_knowledge_base_tool": Permission.VIEW_KNOWLEDGE_BASE,
+    "update_task_status": Permission.UPDATE_TASK,
+    "assign_task": Permission.UPDATE_TASK,
 }
+
 
 def authorize_tool(user_id, tool_name):
     """
@@ -93,4 +95,3 @@ def authorize_tool(user_id, tool_name):
     require_permission(user_id, permission)
 
     return True
-

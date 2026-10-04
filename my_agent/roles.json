@@ -3,7 +3,6 @@
     "permissions": [
       "VIEW_PROJECT",
       "VIEW_TASK",
-      "CREATE_TASK",
       "UPDATE_TASK",
       "VIEW_EMPLOYEE",
       "VIEW_PROJECT_METRICS",
@@ -14,7 +13,6 @@
     "permissions": [
       "VIEW_PROJECT",
       "VIEW_TASK",
-      "CREATE_TASK",
       "UPDATE_TASK",
       "VIEW_EMPLOYEE",
       "VIEW_PROJECT_METRICS",

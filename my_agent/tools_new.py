@@ -6,18 +6,23 @@ from pathlib import Path
 
 DATA_DIR = Path(__file__).resolve().parent
 
-with open(DATA_DIR / "employees.json", "r", encoding="utf-8") as file:
+EMPLOYEES_FILE = DATA_DIR / "employees.json"
+PROJECTS_FILE = DATA_DIR / "projects.json"
+TASKS_FILE = DATA_DIR / "tasks.json"
+PROJECT_UPDATES_FILE = DATA_DIR / "project_updates.json"
+
+
+with open(EMPLOYEES_FILE, "r", encoding="utf-8") as file:
     employees = json.load(file)
 
-with open(DATA_DIR / "projects.json", "r", encoding="utf-8") as file:
+with open(PROJECTS_FILE, "r", encoding="utf-8") as file:
     projects = json.load(file)
 
-with open(DATA_DIR / "tasks.json", "r", encoding="utf-8") as file:
+with open(TASKS_FILE, "r", encoding="utf-8") as file:
     tasks = json.load(file)
 
-with open(DATA_DIR / "project_updates.json", "r", encoding="utf-8") as file:
+with open(PROJECT_UPDATES_FILE, "r", encoding="utf-8") as file:
     project_updates = json.load(file)
-
 
 
 # get projects
@@ -137,6 +142,133 @@ def get_tasks(project_id=None, status=None):
         ]
 
     return filtered_tasks
+
+
+
+# ============================================================
+# TASK UPDATE TOOLS
+# ============================================================
+
+VALID_TASK_STATUSES = {
+    "pending",
+    "in_progress",
+    "completed",
+    "overdue",
+}
+
+
+def _save_tasks():
+    """Persist the current task data to tasks.json."""
+
+    with open(TASKS_FILE, "w", encoding="utf-8") as file:
+        json.dump(tasks, file, indent=2)
+
+
+def get_task(task_id):
+    """Return one task by task ID."""
+
+    if task_id is None:
+        return None
+
+    normalized_id = str(task_id).strip().upper()
+
+    for task in tasks:
+        if str(task.get("task_id", "")).upper() == normalized_id:
+            return task
+
+    return None
+
+
+def update_task_status(task_id, status):
+    """
+    Update the status of an existing task and persist the change.
+    """
+
+    task = get_task(task_id)
+
+    if task is None:
+        return {
+            "success": False,
+            "error": f"Task {task_id} was not found."
+        }
+
+    normalized_status = (
+        str(status)
+        .strip()
+        .lower()
+        .replace(" ", "_")
+    )
+
+    if normalized_status not in VALID_TASK_STATUSES:
+        return {
+            "success": False,
+            "error": (
+                f"Invalid status '{status}'. "
+                f"Valid statuses are: "
+                f"{', '.join(sorted(VALID_TASK_STATUSES))}."
+            )
+        }
+
+    old_status = task.get("status")
+
+    task["status"] = normalized_status
+
+    _save_tasks()
+
+    return {
+        "success": True,
+        "task_id": task["task_id"],
+        "old_status": old_status,
+        "new_status": normalized_status,
+    }
+
+
+def assign_task(task_id, employee_id):
+    """
+    Assign or reassign an existing task to an employee.
+    """
+
+    task = get_task(task_id)
+
+    if task is None:
+        return {
+            "success": False,
+            "error": f"Task {task_id} was not found."
+        }
+
+    if employee_id is None:
+        return {
+            "success": False,
+            "error": "An employee ID is required."
+        }
+
+    normalized_employee_id = str(employee_id).strip().upper()
+
+    employee = get_employee(employee_id=normalized_employee_id)
+
+    if employee is None:
+        return {
+            "success": False,
+            "error": (
+                f"Employee {normalized_employee_id} "
+                "was not found."
+            )
+        }
+
+    old_assignee = task.get("assigned_to")
+
+    task["assigned_to"] = normalized_employee_id
+
+    _save_tasks()
+
+    return {
+        "success": True,
+        "task_id": task["task_id"],
+        "old_assignee": old_assignee,
+        "new_assignee": normalized_employee_id,
+        "employee_name": employee.get("name"),
+    }
+
 
 
 # get project updates

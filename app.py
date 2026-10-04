@@ -146,11 +146,14 @@ gemini_models = [
 # ROLE PERMISSIONS
 # ==================================================
 
+# ==================================================
+# ROLE PERMISSIONS
+# ==================================================
+
 role_permissions = {
     "Project Manager": {
         "View Projects": True,
         "View Tasks": True,
-        "Create Tasks": True,
         "Update Tasks": True,
         "View Employees": True,
         "View Project Metrics": True,
@@ -159,7 +162,6 @@ role_permissions = {
     "Tech Lead": {
         "View Projects": True,
         "View Tasks": True,
-        "Create Tasks": True,
         "Update Tasks": True,
         "View Employees": True,
         "View Project Metrics": True,
@@ -168,7 +170,6 @@ role_permissions = {
     "Product Manager": {
         "View Projects": True,
         "View Tasks": True,
-        "Create Tasks": False,
         "Update Tasks": False,
         "View Employees": False,
         "View Project Metrics": True,
@@ -177,7 +178,6 @@ role_permissions = {
     "Software Engineer": {
         "View Projects": True,
         "View Tasks": True,
-        "Create Tasks": False,
         "Update Tasks": False,
         "View Employees": False,
         "View Project Metrics": False,
@@ -444,6 +444,7 @@ with col1:
 
             - 📁 **Projects** — status, managers, deadlines, budgets and risks
             - 📋 **Tasks** — status, priorities, assignees, progress and due dates
+            - ✏️ **Task Updates** — update task status and assign or reassign tasks
             - 👥 **Employees** — employee information, roles and departments
             - 📊 **Project Metrics** — project-level performance and metrics
             - 📚 **Guidelines & Policies** — company, project and development guidelines
@@ -454,6 +455,8 @@ with col1:
             - *Who is working on the project P001?*
             - *What are the development guidelines?*
             - *Show me the project metrics.*
+            - *Update task T003 status to completed.*
+            - *Reassign task T003 to E006.*
             """
         )
 

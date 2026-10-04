@@ -131,7 +131,6 @@
     "estimated_hours": 12,
     "actual_hours": 15
   },
-
   {
     "task_id": "T013",
     "project_id": "P002",
@@ -264,7 +263,6 @@
     "estimated_hours": 16,
     "actual_hours": 17
   },
-
   {
     "task_id": "T025",
     "project_id": "P003",
@@ -397,7 +395,6 @@
     "estimated_hours": 20,
     "actual_hours": 42
   },
-
   {
     "task_id": "T037",
     "project_id": "P004",
@@ -530,7 +527,6 @@
     "estimated_hours": 12,
     "actual_hours": 14
   },
-
   {
     "task_id": "T049",
     "project_id": "P005",
@@ -663,7 +659,6 @@
     "estimated_hours": 24,
     "actual_hours": 5
   },
-
   {
     "task_id": "T061",
     "project_id": "P006",
@@ -796,7 +791,6 @@
     "estimated_hours": 16,
     "actual_hours": 33
   },
-  
   {
     "task_id": "T073",
     "project_id": "P008",
@@ -907,7 +901,6 @@
     "estimated_hours": 20,
     "actual_hours": 21
   },
-
   {
     "task_id": "T083",
     "project_id": "P009",
@@ -996,7 +989,6 @@
     "estimated_hours": 16,
     "actual_hours": 18
   },
-
   {
     "task_id": "T091",
     "project_id": "P010",
@@ -1173,7 +1165,6 @@
     "estimated_hours": 12,
     "actual_hours": 18
   },
-
   {
     "task_id": "T107",
     "project_id": "P002",
