@@ -307,12 +307,16 @@ def analyze_memory_usage(user_query, memory_context):
     task_reference = any(
         phrase in query
         for phrase in [
-            "previous task",
-            "most recent task",
-            "most recently discussed task",
-            "recently discussed task",
-            "last discussed task",
-            "that task",
+        "previous task",
+        "most recent task",
+        "most recently discussed task",
+        "recently discussed task",
+        "last discussed task",
+        "most discussed task",
+        "which task did we discuss",
+        "what task did we discuss",
+        "task did we discuss",
+        "that task",
         ]
     )
 
@@ -324,6 +328,10 @@ def analyze_memory_usage(user_query, memory_context):
             "most recently discussed project",
             "recently discussed project",
             "last discussed project",
+            "most discussed project",
+            "which project did we discuss",
+            "what project did we discuss",
+            "project did we discuss",
             "that project",
         ]
     )

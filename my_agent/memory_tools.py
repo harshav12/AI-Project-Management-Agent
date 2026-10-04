@@ -150,13 +150,25 @@ def get_conversation_context(user_id, user_query):
     query = user_query.lower()
 
     reference_phrases = [
-        "that project",
-        "the previous project",
-        "most recently",
-        "recently discussed",
-        "last discussed",
-        "that task",
-        "the previous task",
+    "that project",
+    "the previous project",
+    "most recently",
+    "most recently discussed",
+    "recently discussed",
+    "last discussed",
+    "most discussed",
+    "which project did we discuss",
+    "what project did we discuss",
+    "project did we discuss",
+    "that task",
+    "the previous task",
+    "most recently discussed task",
+    "recently discussed task",
+    "last discussed task",
+    "most discussed task",
+    "which task did we discuss",
+    "what task did we discuss",
+    "task did we discuss",
     ]
 
     contains_reference = any(

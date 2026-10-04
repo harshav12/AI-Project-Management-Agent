@@ -450,8 +450,8 @@ with col1:
 
             **Examples:**
             - *What is the current status of Project Alpha?*
-            - *Show me the overdue tasks.*
-            - *Who is working on this project?*
+            - *What is the most discussed project?*
+            - *Who is working on the project P001?*
             - *What are the development guidelines?*
             - *Show me the project metrics.*
             """
