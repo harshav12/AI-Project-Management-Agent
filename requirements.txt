@@ -2,8 +2,6 @@ streamlit
 google-genai
 python-dotenv
 chromadb
-sentence-transformers
-torch
-transformers
+langchain-text-splitters
 numpy
 pandas

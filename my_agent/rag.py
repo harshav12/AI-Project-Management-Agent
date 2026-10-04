@@ -1,6 +1,11 @@
 from pathlib import Path
+import os
+from dotenv import load_dotenv
+from google import genai
+from google.genai import types
+
+load_dotenv()
 from langchain_text_splitters import RecursiveCharacterTextSplitter
-from sentence_transformers import SentenceTransformer
 import chromadb
 
 # -----------------------------------------
@@ -29,12 +34,9 @@ def load_documents():
 
     return documents
 
-
-
 # -----------------------------------------
 # 3. Split documents into chunks
 # -----------------------------------------
-
 
 def chunk_documents(documents):
     """Split documents into smaller overlapping chunks."""
@@ -58,28 +60,41 @@ def chunk_documents(documents):
 
     return chunks
 
-
 # -----------------------------------------
 # 4. Embedding model
 # -----------------------------------------
 
+GEMINI_EMBEDDING_MODEL = "gemini-embedding-2"
+EMBEDDING_DIMENSION = 768
 
-embedding_model = SentenceTransformer("all-MiniLM-L6-v2")
+_gemini_api_key = os.getenv("GEMINI_API_KEY")
 
+if not _gemini_api_key:
+    raise ValueError("GEMINI_API_KEY is not set.")
+
+_gemini_client = genai.Client(
+    api_key=_gemini_api_key
+)
 
 # -----------------------------------------
 # 5. Create embeddings
 # -----------------------------------------
 
-
 def create_embeddings(chunks):
     """Create an embedding vector for every chunk."""
-    texts = [chunk["text"] for chunk in chunks]
 
-    embeddings = embedding_model.encode(
-        texts,
-        convert_to_numpy=True
-    )
+    embeddings = []
+
+    for chunk in chunks:
+        result = _gemini_client.models.embed_content(
+            model=GEMINI_EMBEDDING_MODEL,
+            contents=chunk["text"],
+            config=types.EmbedContentConfig(
+                output_dimensionality=EMBEDDING_DIMENSION
+            )
+        )
+
+        embeddings.append(result.embeddings[0].values)
 
     return embeddings
 
@@ -97,16 +112,13 @@ collection = client.get_or_create_collection(
     name="project_management_knowledge"
 )
 
-
-
 # -----------------------------------------
 # 7. Store embeddings in ChromaDB
 # -----------------------------------------
 
-
-
 def store_embeddings(chunks, embeddings):
     """Store document chunks and their embeddings in ChromaDB."""
+
     collection.add(
         ids=[chunk["id"] for chunk in chunks],
         documents=[chunk["text"] for chunk in chunks],
@@ -117,11 +129,10 @@ def store_embeddings(chunks, embeddings):
             }
             for chunk in chunks
         ],
-        embeddings=embeddings.tolist()
+        embeddings=embeddings
     )
 
     print(f"Stored {len(chunks)} chunks in ChromaDB.")
-
 
 # -----------------------------------------
 # 8. Search the knowledge base
@@ -140,14 +151,19 @@ def search_knowledge_base(query, top_k=3):
         store_embeddings(chunks, embeddings)
 
     # Convert query into an embedding
-    query_embedding = embedding_model.encode(
-        [query],
-        convert_to_numpy=True
-    )[0]
+    result = _gemini_client.models.embed_content(
+        model=GEMINI_EMBEDDING_MODEL,
+        contents=query,
+        config=types.EmbedContentConfig(
+            output_dimensionality=EMBEDDING_DIMENSION
+        )
+    )
+
+    query_embedding = result.embeddings[0].values
 
     # Search ChromaDB
     results = collection.query(
-        query_embeddings=[query_embedding.tolist()],
+        query_embeddings=[query_embedding],
         n_results=top_k
     )
 
