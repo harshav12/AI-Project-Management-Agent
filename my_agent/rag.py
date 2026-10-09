@@ -1,17 +1,14 @@
 from pathlib import Path
-import os
 import hashlib
+from functools import lru_cache
 
 from dotenv import load_dotenv
-from google import genai
-from google.genai import types
-from langchain_text_splitters import RecursiveCharacterTextSplitter
 import chromadb
 
 load_dotenv()
 
 # -----------------------------------------
-# 1. Knowledge base location
+# 1. Knowledge-base location
 # -----------------------------------------
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -44,18 +41,50 @@ def load_documents():
 # 3. Split documents into chunks
 # -----------------------------------------
 
-def chunk_documents(documents):
-    """Split documents into smaller overlapping chunks."""
+def split_text(text, chunk_size=500, chunk_overlap=100):
+    """Split text into overlapping chunks."""
 
-    splitter = RecursiveCharacterTextSplitter(
-        chunk_size=500,
-        chunk_overlap=100
-    )
+    if chunk_size <= 0 or not 0 <= chunk_overlap < chunk_size:
+        raise ValueError("Invalid chunk size or overlap.")
+
+    text = text.strip()
+
+    if not text:
+        return []
+
+    chunks = []
+    start = 0
+    text_length = len(text)
+
+    while start < text_length:
+        end = min(start + chunk_size, text_length)
+
+        if end < text_length:
+            boundary = text.rfind(" ", start, end)
+
+            if boundary > start + chunk_size // 2:
+                end = boundary
+
+        chunk = text[start:end].strip()
+
+        if chunk:
+            chunks.append(chunk)
+
+        if end >= text_length:
+            break
+
+        start = max(start + 1, end - chunk_overlap)
+
+    return chunks
+
+
+def chunk_documents(documents):
+    """Split knowledge-base documents into chunks."""
 
     chunks = []
 
     for document in documents:
-        document_chunks = splitter.split_text(document["text"])
+        document_chunks = split_text(document["text"])
 
         for index, chunk in enumerate(document_chunks):
             chunks.append({
@@ -69,47 +98,60 @@ def chunk_documents(documents):
 
 
 # -----------------------------------------
-# 4. Embedding model
+# 4. Local embedding model
 # -----------------------------------------
 
-GEMINI_EMBEDDING_MODEL = "gemini-embedding-2"
-EMBEDDING_DIMENSION = 768
-
-_gemini_api_key = os.getenv("GEMINI_API_KEY")
-
-if not _gemini_api_key:
-    raise ValueError("GEMINI_API_KEY is not set.")
-
-_gemini_client = genai.Client(
-    api_key=_gemini_api_key
-)
+EMBEDDING_MODEL_NAME = "sentence-transformers/all-MiniLM-L6-v2"
+EMBEDDING_DIMENSION = 384
 
 
-# -----------------------------------------
-# 5. Create embeddings
-# -----------------------------------------
+@lru_cache(maxsize=1)
+def get_embedding_model():
+    """Load the model only when embeddings are first required."""
+
+    from sentence_transformers import SentenceTransformer
+
+    return SentenceTransformer(EMBEDDING_MODEL_NAME)
+
 
 def create_embeddings(chunks):
-    """Create an embedding vector for every chunk."""
+    """Generate local embeddings for document chunks."""
 
-    embeddings = []
+    if not chunks:
+        return []
 
-    for chunk in chunks:
-        result = _gemini_client.models.embed_content(
-            model=GEMINI_EMBEDDING_MODEL,
-            contents=chunk["text"],
-            config=types.EmbedContentConfig(
-                output_dimensionality=EMBEDDING_DIMENSION
-            )
-        )
+    model = get_embedding_model()
 
-        embeddings.append(result.embeddings[0].values)
+    texts = [chunk["text"] for chunk in chunks]
 
-    return embeddings
+    embeddings = model.encode(
+        texts,
+        batch_size=32,
+        show_progress_bar=False,
+        normalize_embeddings=True,
+        convert_to_numpy=True
+    )
+
+    return embeddings.tolist()
+
+
+def create_query_embedding(query):
+    """Generate a local embedding for a search query."""
+
+    model = get_embedding_model()
+
+    embedding = model.encode(
+        [query],
+        show_progress_bar=False,
+        normalize_embeddings=True,
+        convert_to_numpy=True
+    )
+
+    return embedding[0].tolist()
 
 
 # -----------------------------------------
-# 6. ChromaDB
+# 5. ChromaDB
 # -----------------------------------------
 
 CHROMA_DB_DIR = BASE_DIR / "chroma_db"
@@ -118,26 +160,26 @@ client = chromadb.PersistentClient(
     path=str(CHROMA_DB_DIR)
 )
 
-# Existing Knowledge Base collection.
-# Keep this collection intact.
+# New collections for local 384-dimensional embeddings.
+# Existing Gemini-based collections remain untouched.
 
 collection = client.get_or_create_collection(
-    name="project_management_knowledge"
+    name="project_management_knowledge_local_minilm",
+    metadata={"hnsw:space": "cosine"}
 )
 
-# Separate collection for user-uploaded documents.
-
 uploaded_collection = client.get_or_create_collection(
-    name="user_uploaded_documents"
+    name="user_uploaded_documents_local_minilm",
+    metadata={"hnsw:space": "cosine"}
 )
 
 
 # -----------------------------------------
-# 7. Store existing Knowledge Base embeddings
+# 6. Store knowledge-base embeddings
 # -----------------------------------------
 
 def store_embeddings(chunks, embeddings):
-    """Store existing Knowledge Base chunks in ChromaDB."""
+    """Store knowledge-base chunks and their embeddings."""
 
     if not chunks:
         return
@@ -159,21 +201,11 @@ def store_embeddings(chunks, embeddings):
 
 
 # -----------------------------------------
-# 8. Index user-uploaded documents
+# 7. Index user-uploaded documents
 # -----------------------------------------
 
 def index_uploaded_documents(user_id, documents):
-    """
-    Index multiple uploaded documents for a specific user.
-
-    Expected input:
-    [
-        {
-            "source": "document.pdf",
-            "text": "Extracted document text..."
-        }
-    ]
-    """
+    """Index multiple uploaded documents for a specific user."""
 
     if not user_id:
         raise ValueError("A user_id is required.")
@@ -186,11 +218,6 @@ def index_uploaded_documents(user_id, documents):
             "chunk_count": 0
         }
 
-    splitter = RecursiveCharacterTextSplitter(
-        chunk_size=500,
-        chunk_overlap=100
-    )
-
     indexed_files = []
     total_chunks = 0
 
@@ -201,28 +228,12 @@ def index_uploaded_documents(user_id, documents):
         if not text:
             continue
 
-        # Remove the previous version of this filename
-        # for this user before indexing its new contents.
-
-        uploaded_collection.delete(
-            where={
-                "$and": [
-                    {"user_id": str(user_id)},
-                    {"source": source}
-                ]
-            }
-        )
-
-        text_chunks = splitter.split_text(text)
-
+        text_chunks = split_text(text)
         chunks = []
 
         for index, chunk_text in enumerate(text_chunks):
             chunk_id = hashlib.sha256(
-                (
-                    f"{user_id}:{source}:"
-                    f"{index}:{chunk_text}"
-                ).encode("utf-8")
+                f"{user_id}:{source}:{index}:{chunk_text}".encode("utf-8")
             ).hexdigest()
 
             chunks.append({
@@ -235,7 +246,18 @@ def index_uploaded_documents(user_id, documents):
         if not chunks:
             continue
 
+        # Generate embeddings before removing the previously indexed
+        # version, so an embedding error does not delete the old version.
         embeddings = create_embeddings(chunks)
+
+        uploaded_collection.delete(
+            where={
+                "$and": [
+                    {"user_id": str(user_id)},
+                    {"source": source}
+                ]
+            }
+        )
 
         uploaded_collection.upsert(
             ids=[chunk["id"] for chunk in chunks],
@@ -263,11 +285,11 @@ def index_uploaded_documents(user_id, documents):
 
 
 # -----------------------------------------
-# 9. List uploaded documents
+# 8. List uploaded documents
 # -----------------------------------------
 
 def list_uploaded_documents(user_id):
-    """Return the uploaded filenames belonging to one user."""
+    """Return uploaded filenames belonging to one user."""
 
     if not user_id or uploaded_collection.count() == 0:
         return []
@@ -287,11 +309,11 @@ def list_uploaded_documents(user_id):
 
 
 # -----------------------------------------
-# 10. Remove an uploaded document
+# 9. Remove an uploaded document from ChromaDB
 # -----------------------------------------
 
 def remove_uploaded_document(user_id, source):
-    """Remove one uploaded document belonging to one user."""
+    """Remove indexed chunks belonging to one user's document."""
 
     if not user_id or not source:
         return 0
@@ -315,14 +337,20 @@ def remove_uploaded_document(user_id, source):
 
 
 # -----------------------------------------
-# 11. Search the existing Knowledge Base
+# 10. Search the existing Knowledge Base
 # -----------------------------------------
 
 def search_knowledge_base(query, top_k=3):
     """Search the existing project management Knowledge Base."""
 
+    if top_k <= 0:
+        return []
+
+    # Index the knowledge base only when a search first needs it.
+    # Existing vectors in this new collection are reused on later searches.
+
     if collection.count() == 0:
-        print("Knowledge Base is empty. Initializing...")
+        print("Local Knowledge Base collection is empty. Initializing...")
 
         documents = load_documents()
         chunks = chunk_documents(documents)
@@ -331,34 +359,26 @@ def search_knowledge_base(query, top_k=3):
             embeddings = create_embeddings(chunks)
             store_embeddings(chunks, embeddings)
 
-    if collection.count() == 0:
+    count = collection.count()
+
+    if count == 0:
         return []
 
-    result = _gemini_client.models.embed_content(
-        model=GEMINI_EMBEDDING_MODEL,
-        contents=query,
-        config=types.EmbedContentConfig(
-            output_dimensionality=EMBEDDING_DIMENSION
-        )
-    )
-
-    query_embedding = result.embeddings[0].values
+    # Only the question needs a new embedding for this search.
+    query_embedding = create_query_embedding(query)
 
     results = collection.query(
         query_embeddings=[query_embedding],
-        n_results=min(top_k, collection.count())
+        n_results=min(top_k, count),
+        include=["documents", "metadatas", "distances"]
     )
 
     retrieved_documents = []
 
-    documents = results["documents"][0]
-    metadatas = results["metadatas"][0]
-    distances = results["distances"][0]
-
     for document, metadata, distance in zip(
-        documents,
-        metadatas,
-        distances
+        results["documents"][0],
+        results["metadatas"][0],
+        results["distances"][0]
     ):
         retrieved_documents.append({
             "text": document,
@@ -371,29 +391,16 @@ def search_knowledge_base(query, top_k=3):
 
 
 # -----------------------------------------
-# 12. Search uploaded documents
+# 11. Search uploaded documents
 # -----------------------------------------
 
 def search_uploaded_documents(query, user_id, top_k=3):
-    """Search only the uploaded documents belonging to one user."""
+    """Search only uploaded documents belonging to one user."""
 
-    if not user_id or uploaded_collection.count() == 0:
+    if not user_id or top_k <= 0 or uploaded_collection.count() == 0:
         return []
 
-    # Embed the question.
-
-    result = _gemini_client.models.embed_content(
-        model=GEMINI_EMBEDDING_MODEL,
-        contents=query,
-        config=types.EmbedContentConfig(
-            output_dimensionality=EMBEDDING_DIMENSION
-        )
-    )
-
-    query_embedding = result.embeddings[0].values
-
-    # Count only this user's chunks.
-
+    # Check for this user's documents before loading the model.
     user_results = uploaded_collection.get(
         where={"user_id": str(user_id)},
         include=[]
@@ -404,22 +411,21 @@ def search_uploaded_documents(query, user_id, top_k=3):
     if user_chunk_count == 0:
         return []
 
+    query_embedding = create_query_embedding(query)
+
     results = uploaded_collection.query(
         query_embeddings=[query_embedding],
         n_results=min(top_k, user_chunk_count),
-        where={"user_id": str(user_id)}
+        where={"user_id": str(user_id)},
+        include=["documents", "metadatas", "distances"]
     )
 
     retrieved_documents = []
 
-    documents = results["documents"][0]
-    metadatas = results["metadatas"][0]
-    distances = results["distances"][0]
-
     for document, metadata, distance in zip(
-        documents,
-        metadatas,
-        distances
+        results["documents"][0],
+        results["metadatas"][0],
+        results["distances"][0]
     ):
         retrieved_documents.append({
             "text": document,
@@ -432,17 +438,11 @@ def search_uploaded_documents(query, user_id, top_k=3):
 
 
 # -----------------------------------------
-# 13. Search both document sources
+# 12. Search both document sources
 # -----------------------------------------
 
 def search_all_documents(query, user_id=None, top_k=3):
-    """
-    Search the existing Knowledge Base and, when user_id is
-    provided, that user's uploaded documents.
-
-    Results from both sources are combined and ranked by
-    ChromaDB distance.
-    """
+    """Search the knowledge base and the current user's uploaded documents."""
 
     if top_k <= 0:
         return []
