@@ -5,3 +5,7 @@ chromadb
 langchain-text-splitters
 numpy
 pandas
+sentence-transformers
+pypdf
+python-docx
+psycopg[binary]

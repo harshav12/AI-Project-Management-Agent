@@ -4,8 +4,10 @@ from pypdf import PdfReader
 from docx import Document
 
 from my_agent.Coordinator_agent import run_coordinator
-from my_agent.database import save_document
+from my_agent.database import save_document, initialize_database
 from my_agent.rag import index_uploaded_documents
+
+
 # ==================================================
 # PAGE CONFIGURATION
 # ==================================================
@@ -15,6 +17,25 @@ st.set_page_config(
     page_icon="🤖",
     layout="wide"
 )
+
+
+# ==================================================
+# DATABASE INITIALIZATION
+# ==================================================
+
+@st.cache_resource
+def setup_database():
+    initialize_database()
+    return True
+
+
+try:
+    setup_database()
+except Exception as error:
+    st.error("Could not connect to the PostgreSQL database.")
+    st.error(str(error))
+    st.stop()
+
 
 # ==================================================
 # CUSTOM CSS
@@ -123,6 +144,7 @@ st.markdown(
     unsafe_allow_html=True
 )
 
+
 # ==================================================
 # USER DATA
 # ==================================================
@@ -133,6 +155,7 @@ users = {
     "Ava Thomas (E011) - Product Manager": "E011",
     "Sarah Williams (E002) - Software Engineer": "E002"
 }
+
 
 # ==================================================
 # GEMINI MODELS
@@ -147,9 +170,6 @@ gemini_models = [
     "gemini-3.1-flash-lite"
 ]
 
-# ==================================================
-# ROLE PERMISSIONS
-# ==================================================
 
 # ==================================================
 # ROLE PERMISSIONS
@@ -190,12 +210,14 @@ role_permissions = {
     }
 }
 
+
 # ==================================================
 # SESSION STATE
 # ==================================================
 
 if "messages" not in st.session_state:
     st.session_state.messages = []
+
 
 # ==================================================
 # EXECUTION DETAILS
@@ -207,13 +229,10 @@ def render_execution_details(
     memory_context=None
 ):
     with st.expander("🔍 Execution Details"):
+
         st.caption(
             f"Coordinator iterations: {iterations}"
         )
-
-        # --------------------------------------------------
-        # MEMORY CONTEXT
-        # --------------------------------------------------
 
         if memory_context:
             st.markdown(
@@ -225,8 +244,10 @@ def render_execution_details(
 
         if not trace:
             st.caption("No execution trace available.")
+
         else:
             for step_index, step in enumerate(trace, start=1):
+
                 agent = step.get(
                     "agent",
                     "Unknown Agent"
@@ -242,6 +263,7 @@ def render_execution_details(
                 )
 
                 if isinstance(agent_result, dict):
+
                     specialist_agent = agent_result.get("agent")
 
                     if specialist_agent:
@@ -255,6 +277,7 @@ def render_execution_details(
                     )
 
                     for tool_step in specialist_trace:
+
                         tool_name = tool_step.get(
                             "tool",
                             "Unknown Tool"
@@ -281,6 +304,7 @@ def render_execution_details(
                                 )
 
                         if isinstance(tool_result, dict):
+
                             if tool_result.get("success") is False:
                                 st.error(
                                     "✗ Tool execution failed"
@@ -290,6 +314,7 @@ def render_execution_details(
                                     "✓ Completed",
                                     icon="✅"
                                 )
+
                         else:
                             st.success(
                                 "✓ Completed",
@@ -301,7 +326,6 @@ def render_execution_details(
 
             st.divider()
 
-            # Check whether any specialist tool failed
             has_tool_failure = any(
                 isinstance(specialist_step.get("result"), dict)
                 and any(
@@ -323,11 +347,13 @@ def render_execution_details(
                     icon="🤖"
                 )
 
+
 # ==================================================
 # SIDEBAR
 # ==================================================
 
 with st.sidebar:
+
     st.title("🤖 Project Agent")
 
     st.markdown(
@@ -358,6 +384,7 @@ with st.sidebar:
 
     st.divider()
 
+
     # ==================================================
     # DOCUMENT UPLOAD
     # ==================================================
@@ -369,47 +396,65 @@ with st.sidebar:
         type=["pdf", "txt", "docx"],
         accept_multiple_files=True,
         key="document_uploader"
-        )
+    )
 
     if uploaded_files:
-        st.caption(f"{len(uploaded_files)} document(s) selected.")
+
+        st.caption(
+            f"{len(uploaded_files)} document(s) selected."
+        )
 
         if st.button("Process Documents"):
+
             documents_to_index = []
 
             try:
                 with st.spinner("Processing documents..."):
+
                     for uploaded_file in uploaded_files:
+
                         file_bytes = uploaded_file.getvalue()
                         filename = uploaded_file.name
                         file_type = uploaded_file.type
 
                         # Extract text from the document
                         if filename.lower().endswith(".pdf"):
-                            reader = PdfReader(BytesIO(file_bytes))
+
+                            reader = PdfReader(
+                                BytesIO(file_bytes)
+                            )
+
                             extracted_text = "\n".join(
                                 page.extract_text() or ""
                                 for page in reader.pages
                             )
 
                         elif filename.lower().endswith(".docx"):
-                            doc = Document(BytesIO(file_bytes))
+
+                            doc = Document(
+                                BytesIO(file_bytes)
+                            )
+
                             extracted_text = "\n".join(
                                 paragraph.text
                                 for paragraph in doc.paragraphs
                             )
 
                         else:
-                            extracted_text = file_bytes.decode("utf-8-sig")
+                            extracted_text = file_bytes.decode(
+                                "utf-8-sig"
+                            )
 
                         if not extracted_text.strip():
+
                             st.warning(
                                 f"No extractable text found in {filename}. "
                                 "It was not processed."
                             )
+
                             continue
 
-                        # Save the original file in MySQL
+                        # Save original file in PostgreSQL
                         save_document(
                             user_id=user_id,
                             filename=filename,
@@ -423,8 +468,9 @@ with st.sidebar:
                             "text": extracted_text
                         })
 
-                    # Index the extracted text in ChromaDB
+                    # Index extracted text in ChromaDB
                     if documents_to_index:
+
                         result = index_uploaded_documents(
                             user_id=user_id,
                             documents=documents_to_index
@@ -434,10 +480,14 @@ with st.sidebar:
                             f"Processed {result['file_count']} document(s) "
                             f"and indexed {result['chunk_count']} text chunk(s)."
                         )
+
                     else:
-                        st.warning("No documents were available to index.")
+                        st.warning(
+                            "No documents were available to index."
+                        )
 
             except Exception as error:
+
                 st.error("Document processing failed.")
                 st.exception(error)
 
@@ -472,8 +522,12 @@ with st.sidebar:
     )
 
     for user, uid in users.items():
+
         name = user.split(" (")[0]
-        st.caption(f"**{uid}** · {name}")
+
+        st.caption(
+            f"**{uid}** · {name}"
+        )
 
     st.divider()
 
@@ -493,6 +547,7 @@ with st.sidebar:
     ):
         st.session_state.messages = []
         st.rerun()
+
 
 # ==================================================
 # MAIN HEADER
@@ -518,6 +573,7 @@ st.markdown(
     unsafe_allow_html=True
 )
 
+
 # ==================================================
 # HOW TO USE & PERMISSIONS
 # ==================================================
@@ -525,7 +581,9 @@ st.markdown(
 col1, col2 = st.columns(2)
 
 with col1:
+
     with st.expander("📖 How to use"):
+
         st.markdown(
             """
             Ask questions in natural language. The system routes your request
@@ -552,7 +610,9 @@ with col1:
         )
 
 with col2:
+
     with st.expander("🔐 Your permissions"):
+
         current_permissions = role_permissions.get(
             user_role,
             {}
@@ -563,6 +623,7 @@ with col2:
         )
 
         for permission, allowed in current_permissions.items():
+
             if allowed:
                 st.markdown(
                     f'<div class="permission-allowed">✓ {permission}</div>',
@@ -579,29 +640,38 @@ with col2:
             unsafe_allow_html=True
         )
 
+
 # ==================================================
 # DISPLAY CONVERSATION HISTORY
 # ==================================================
 
 for message in st.session_state.messages:
+
     with st.chat_message(message["role"]):
-        st.markdown(message["content"])
+
+        st.markdown(
+            message["content"]
+        )
 
         if message["role"] == "assistant" and "trace" in message:
+
             render_execution_details(
                 message["trace"],
                 message.get("iterations", 0),
                 message.get("memory_context")
             )
 
+
 # ==================================================
 # EMPTY STATE
 # ==================================================
 
 if not st.session_state.messages:
+
     st.info(
         "👋 Ask me about projects, tasks, employees, or project progress."
     )
+
 
 # ==================================================
 # CHAT INPUT
@@ -611,11 +681,13 @@ query = st.chat_input(
     "Ask about projects, tasks, employees..."
 )
 
+
 # ==================================================
 # HANDLE NEW MESSAGE
 # ==================================================
 
 if query:
+
     st.session_state.messages.append({
         "role": "user",
         "content": query
@@ -629,8 +701,11 @@ if query:
     # ==================================================
 
     with st.chat_message("assistant"):
+
         try:
+
             with st.spinner("🤖 Coordinator is working..."):
+
                 result = run_coordinator(
                     user_id=user_id,
                     user_query=query,
@@ -642,6 +717,7 @@ if query:
             # ------------------------------------------
 
             if not isinstance(result, dict):
+
                 response = str(result)
 
                 st.markdown(response)
@@ -656,9 +732,8 @@ if query:
             # ------------------------------------------
 
             elif result.get("success"):
-                response = result.get(
-                    "report"
-                )
+
+                response = result.get("report")
 
                 if not response:
                     response = (
@@ -702,6 +777,7 @@ if query:
             # ------------------------------------------
 
             else:
+
                 response = result.get(
                     "report",
                     "The Coordinator could not complete the request."
@@ -718,14 +794,16 @@ if query:
         # BACKEND ERROR
         # ----------------------------------------------
 
-        except Exception as e:
+        except Exception as error:
+
             st.error(
                 "The request could not be processed."
             )
 
             with st.expander("Technical Details"):
+
                 st.code(
-                    str(e),
+                    str(error),
                     language="text"
                 )
 
@@ -735,6 +813,7 @@ if query:
                     "Sorry, I couldn't process that request."
                 )
             })
+
 
 # ==================================================
 # FOOTER
