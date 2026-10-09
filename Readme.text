@@ -1,55 +1,114 @@
-Architecture
-                # User
-                #   ↓
-                # Coordinator Agent
-                #   ↓
-                # Memory / Context
-                #   ↓
-                # Dynamic Agent Selection
-                #   ↓
-                # Specialist Agent
-                #   ↓
-                # LLM dynamically selects tool
-                #   ↓
-                # ┌─────────────────────────────┐
-                # │      GUARDRAIL LAYER        │
-                # │                             │
-                # │  1. Validate input          │
-                # │  2. Check permission/RBAC   │
-                # │  3. Detect sensitive action │
-                # │  4. Detect duplicate call   │
-                # │  5. Execute safely          │
-                # │  6. Handle tool failure     │
-                # │  7. Return controlled result│
-                # └─────────────────────────────┘
-                #   ↓
-                # Tool
-                #   ↓
-                # Result
-                #   ↓
-                # Agent observes result
-                #   ↓
-                # Continue / Replan / Finish
+Current Architecture
+
+                         User
+                           │
+                           ▼
+                  Coordinator Agent
+                           │
+                ┌──────────┴──────────┐
+                ▼                     ▼
+         Memory / Context       Knowledge Base
+                │                     │
+                ▼                     ▼
+       Dynamic Agent Selection   RAG Retrieval
+                │                     │
+                ▼                     │
+       ┌────────┼─────────┐           │
+       ▼        ▼         ▼           │
+    Project   Task     Employee       │
+     Agent    Agent     Agent         │
+       │        │         │           │
+       └────────┴─────────┴───────────┘
+                           │
+                           ▼
+                    Tool Selection
+                           │
+                           ▼
+                    Guardrail Layer
+                           │
+             ┌─────────────┼─────────────┐
+             ▼             ▼             ▼
+         Validation    Permissions    Safe Execution
+                           │
+                           ▼
+                      Tool Execution
+                           │
+                           ▼
+                     Tool Result
+                           │
+                           ▼
+                  Agent Observes Result
+                           │
+                           ▼
+                   Continue / Replan /
+                         Finish
+
+Current Project structure
+
+AI-Project-Management-Agent/
+│
+├── .streamlit/
+│
+├── Knowledge_base/
+│
+├── Memory/
+│   ├── user_memory.json
+│   └── users.json
+│
+├── my_agent/
+│   ├── Coordinator_agent.py
+│   ├── project_agent.py
+│   ├── task_agent.py
+│   ├── employee_agent.py
+│   │
+│   ├── database.py
+│   ├── rag.py
+│   ├── rag_tools.py
+│   ├── memory_tools.py
+│   ├── permissions.py
+│   ├── tools_new.py
+│   │
+│   ├── employees.json
+│   ├── roles.json
+│   ├── projects.json
+│   ├── tasks.json
+│   └── project_updates.json
+│
+├── app.py
+├── requirements.txt
+├── .gitignore
+└── Readme.text
 
 
 
-New structure
 
-my_agent/
-│
-├── Coordinator_agent.py
-├── project_agent.py
-├── task_agent.py
-├── employee_agent.py
-│
-├── tools_new.py
-├── memory_tools.py
-│
-├── guardrails.py          ← NEW
-├── permissions.py         ← NEW
-│
-├── employees.json
-├── roles.json             ← NEW
-├── projects.json
-├── tasks.json
-└── project_updates.json
+# Document upload and rag structure
+
+
+                 User Uploads Documents
+                           │
+                           ▼
+                 PDF / TXT / DOCX
+                           │
+                ┌──────────┴──────────┐
+                ▼                     ▼
+         Original Documents      Text Extraction
+                │                     │
+                ▼                     ▼
+         Neon PostgreSQL        Text Chunking
+                │                     │
+                │                     ▼
+                │              ChromaDB Indexing
+                │                     │
+                │                     ▼
+                │              Semantic Retrieval
+                │                     │
+                └──────────┬──────────┘
+                           ▼
+                    User Asks Question
+                           │
+                           ▼
+                   Relevant Documents
+                           │
+                           ▼
+                    AI Agent Response
