@@ -1,6 +1,11 @@
 import streamlit as st
-from my_agent.Coordinator_agent import run_coordinator
+from io import BytesIO
+from pypdf import PdfReader
+from docx import Document
 
+from my_agent.Coordinator_agent import run_coordinator
+from my_agent.database import save_document
+from my_agent.rag import index_uploaded_documents
 # ==================================================
 # PAGE CONFIGURATION
 # ==================================================
@@ -364,12 +369,77 @@ with st.sidebar:
         type=["pdf", "txt", "docx"],
         accept_multiple_files=True,
         key="document_uploader"
-    )
+        )
 
     if uploaded_files:
-        st.caption(
-            f"{len(uploaded_files)} document(s) selected."
-        )
+        st.caption(f"{len(uploaded_files)} document(s) selected.")
+
+        if st.button("Process Documents"):
+            documents_to_index = []
+
+            try:
+                with st.spinner("Processing documents..."):
+                    for uploaded_file in uploaded_files:
+                        file_bytes = uploaded_file.getvalue()
+                        filename = uploaded_file.name
+                        file_type = uploaded_file.type
+
+                        # Extract text from the document
+                        if filename.lower().endswith(".pdf"):
+                            reader = PdfReader(BytesIO(file_bytes))
+                            extracted_text = "\n".join(
+                                page.extract_text() or ""
+                                for page in reader.pages
+                            )
+
+                        elif filename.lower().endswith(".docx"):
+                            doc = Document(BytesIO(file_bytes))
+                            extracted_text = "\n".join(
+                                paragraph.text
+                                for paragraph in doc.paragraphs
+                            )
+
+                        else:
+                            extracted_text = file_bytes.decode("utf-8-sig")
+
+                        if not extracted_text.strip():
+                            st.warning(
+                                f"No extractable text found in {filename}. "
+                                "It was not processed."
+                            )
+                            continue
+
+                        # Save the original file in MySQL
+                        save_document(
+                            user_id=user_id,
+                            filename=filename,
+                            file_type=file_type,
+                            file_data=file_bytes
+                        )
+
+                        # Prepare extracted text for ChromaDB
+                        documents_to_index.append({
+                            "source": filename,
+                            "text": extracted_text
+                        })
+
+                    # Index the extracted text in ChromaDB
+                    if documents_to_index:
+                        result = index_uploaded_documents(
+                            user_id=user_id,
+                            documents=documents_to_index
+                        )
+
+                        st.success(
+                            f"Processed {result['file_count']} document(s) "
+                            f"and indexed {result['chunk_count']} text chunk(s)."
+                        )
+                    else:
+                        st.warning("No documents were available to index.")
+
+            except Exception as error:
+                st.error("Document processing failed.")
+                st.exception(error)
 
     st.divider()
 
