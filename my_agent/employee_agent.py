@@ -54,6 +54,7 @@ def _parse_json_response(content):
     # ```json ... ```
     if content.startswith("```json"):
         content = content[7:]
+
         if content.endswith("```"):
             content = content[:-3]
 
@@ -65,6 +66,7 @@ def _parse_json_response(content):
     # ``` ... ```
     if content.startswith("```"):
         content = content[3:]
+
         if content.endswith("```"):
             content = content[:-3]
 
@@ -134,24 +136,34 @@ def _gemini_chat(
     # ========================================================
 
     if tools:
-        function_declarations = [
+        declarations = [
             {
                 "name": "get_employee",
                 "description": (
-                    "Get current employee information using either "
-                    "an employee ID or employee name."
+                    "Retrieve one or more employees. "
+                    "Use employee_id to retrieve a specific employee. "
+                    "Use employee_name to search employee names. "
+                    "Use department to filter employees by department. "
+                    "Leave all parameters empty to list all employees, "
+                    "when the user is authorized."
                 ),
                 "parameters": {
                     "type": "object",
                     "properties": {
                         "employee_id": {
                             "type": "string",
-                            "description": "Employee ID such as E001."
+                            "description": "Employee ID, such as E001."
                         },
                         "employee_name": {
                             "type": "string",
                             "description": (
-                                "Employee name such as John Smith."
+                                "Full or partial employee name."
+                            )
+                        },
+                        "department": {
+                            "type": "string",
+                            "description": (
+                                "Department name used to filter employees."
                             )
                         }
                     }
@@ -160,9 +172,8 @@ def _gemini_chat(
             {
                 "name": "search_knowledge_base_tool",
                 "description": (
-                    "Search the knowledge base for documented company "
-                    "policies, project management guidelines, development "
-                    "guidelines, rules, and procedures."
+                    "Search the authorized knowledge base for relevant "
+                    "information, policies, and documents."
                 ),
                 "parameters": {
                     "type": "object",
@@ -170,8 +181,7 @@ def _gemini_chat(
                         "query": {
                             "type": "string",
                             "description": (
-                                "The policy, guideline, rule, or procedure "
-                                "to search for."
+                                "The question or information to search for."
                             )
                         }
                     },
@@ -182,9 +192,13 @@ def _gemini_chat(
 
         config_kwargs["tools"] = [
             types.Tool(
-                function_declarations=function_declarations
+                function_declarations=declarations
             )
         ]
+
+    # ========================================================
+    # CALL GEMINI
+    # ========================================================
 
     config = types.GenerateContentConfig(**config_kwargs)
 
@@ -194,23 +208,48 @@ def _gemini_chat(
         config=config
     )
 
-    content = response.text or ""
+    # A tool-only response may not have ordinary text.
+    # Accessing response.text can raise ValueError in that case.
+    try:
+        content = response.text or ""
+    except (ValueError, AttributeError):
+        content = ""
+
+    # ========================================================
+    # EXTRACT TOOL CALLS
+    # ========================================================
+
     tool_calls = []
 
     if response.candidates:
         for part in response.candidates[0].content.parts:
-            if part.function_call:
+
+            function_call = getattr(
+                part,
+                "function_call",
+                None
+            )
+
+            if function_call:
+                raw_args = (
+                    getattr(function_call, "args", None) or {}
+                )
+
+                try:
+                    arguments = dict(raw_args)
+                except (TypeError, ValueError):
+                    arguments = {}
+
                 tool_calls.append(
                     SimpleNamespace(
                         function=SimpleNamespace(
-                            name=part.function_call.name,
-                            arguments=dict(
-                                part.function_call.args or {}
-                            )
+                            name=function_call.name,
+                            arguments=arguments
                         )
                     )
                 )
 
+    # Return the response structure expected by the agent.
     return SimpleNamespace(
         message=SimpleNamespace(
             content=content,
@@ -367,6 +406,12 @@ Return only the plan.
         }
     )
 
+    if response is None or response.message is None:
+        raise RuntimeError(
+            "Gemini did not return a valid response while creating "
+            "the Employee Agent plan."
+        )
+
     return response.message.content or ""
 
 
@@ -406,6 +451,17 @@ def observe_employee_result(
             "num_predict": 250
         }
     )
+
+    if response is None or response.message is None:
+        return {
+            "decision": "REPLAN",
+            "reason": "Gemini returned an invalid observation response.",
+            "revised_plan": (
+                current_plan
+                + "\n\nReconsider the remaining objective "
+                  "using the latest tool result."
+            )
+        }
 
     content = response.message.content or ""
     observation = _parse_json_response(content)
@@ -488,6 +544,12 @@ could and could not be determined.
             "num_predict": 600
         }
     )
+
+    if response is None or response.message is None:
+        return (
+            "The Employee Agent completed its tool execution, "
+            "but Gemini did not return a valid final answer."
+        )
 
     return response.message.content or ""
 
@@ -582,6 +644,28 @@ Do not repeat an identical tool call.
             }
         )
 
+        # ----------------------------------------------------
+        # VALIDATE MODEL RESPONSE
+        # ----------------------------------------------------
+
+        if response is None:
+            raise RuntimeError(
+                "_gemini_chat() returned None. "
+                "Check the Gemini response handling."
+            )
+
+        if (
+            not hasattr(response, "message")
+            or response.message is None
+        ):
+            raise RuntimeError(
+                "_gemini_chat() returned an invalid response object."
+            )
+
+        # ----------------------------------------------------
+        # EXTRACT TOOL CALLS
+        # ----------------------------------------------------
+
         tool_calls = response.message.tool_calls or []
 
         # ----------------------------------------------------
@@ -612,17 +696,15 @@ Do not repeat an identical tool call.
         raw_arguments = tool_call.function.arguments or {}
 
         if isinstance(raw_arguments, str):
-
             try:
                 arguments = json.loads(raw_arguments)
-
             except json.JSONDecodeError:
-
                 arguments = None
-
         else:
-
-            arguments = dict(raw_arguments)
+            try:
+                arguments = dict(raw_arguments)
+            except (TypeError, ValueError):
+                arguments = None
 
         call_signature = (
             tool_name,
@@ -660,43 +742,34 @@ Do not repeat an identical tool call.
         tool_function = employee_tools.get(tool_name)
 
         if tool_function is None:
-
             result = {
                 "success": False,
                 "error": f"Unknown employee tool: {tool_name}"
             }
 
         else:
-
             try:
-
-                # Validate tool arguments
+                # Validate tool arguments.
                 if not isinstance(arguments, dict):
-
                     result = {
                         "success": False,
                         "error": "Invalid tool arguments."
                     }
 
                 else:
-
-                    # RBAC authorization check
+                    # RBAC authorization check.
                     authorize_tool(user_id, tool_name)
 
-                    # Execute tool only if authorized
+                    # Execute tool only if authorized.
                     if tool_name == "search_knowledge_base_tool":
                         result = tool_function(
                             **arguments,
-                            user_id = user_id
+                            user_id=user_id
                         )
                     else:
-                        result = tool_function(
-                            **arguments
-                        )
-            
+                        result = tool_function(**arguments)
 
             except Exception as error:
-
                 result = {
                     "success": False,
                     "error": f"{type(error).__name__}: {error}"
@@ -768,7 +841,6 @@ Do not repeat an identical tool call.
         elif decision == "REPLAN":
 
             if revised_plan:
-
                 current_plan = revised_plan
 
                 print(
@@ -778,11 +850,10 @@ Do not repeat an identical tool call.
                 print(current_plan)
 
             else:
-
                 current_plan = (
                     current_plan
                     + "\n\nReconsider the remaining objective "
-                      "based on the latest tool result."
+                    "based on the latest tool result."
                 )
 
                 print(
@@ -791,7 +862,6 @@ Do not repeat an identical tool call.
                 )
 
         elif decision == "CONTINUE":
-
             print(
                 "\nEMPLOYEE AGENT: Continuing current plan."
             )

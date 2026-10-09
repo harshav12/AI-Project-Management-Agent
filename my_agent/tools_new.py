@@ -292,46 +292,68 @@ def get_project_updates(project_id=None):
 
 
 # get employee
-def get_employee(employee_id=None, employee_name=None):
-    """Return one employee by ID or name."""
+def get_employee(
+    employee_id=None,
+    employee_name=None,
+    department=None
+):
+    """Retrieve one or more employees using optional filters."""
 
-    if employee_id is None and employee_name is None:
-        raise ValueError(
-            "Provide employee_id or employee_name."
-        )
+    filtered_employees = employees
 
     # --------------------------------------------------------
-    # Search by employee ID
+    # Filter by employee ID
     # --------------------------------------------------------
 
     if employee_id is not None:
         normalized_id = str(employee_id).strip().upper()
 
-        for employee in employees:
-            if (
-                str(employee.get("employee_id", "")).upper()
-                == normalized_id
-            ):
-                return employee
+        filtered_employees = [
+            employee
+            for employee in filtered_employees
+            if str(employee.get("employee_id", "")).strip().upper()
+            == normalized_id
+        ]
 
     # --------------------------------------------------------
-    # Search by employee name
+    # Filter by employee name
     # --------------------------------------------------------
 
     if employee_name is not None:
-        normalized_name = (
-            str(employee_name).strip().lower()
-        )
+        normalized_name = str(employee_name).strip().lower()
 
-        for employee in employees:
-            employee_name_value = (
-                str(employee.get("name", "")).strip().lower()
-            )
+        filtered_employees = [
+            employee
+            for employee in filtered_employees
+            if normalized_name
+            in str(employee.get("name", "")).strip().lower()
+        ]
 
-            if employee_name_value == normalized_name:
-                return employee
+    # --------------------------------------------------------
+    # Filter by department
+    # --------------------------------------------------------
 
-    return None
+    if department is not None:
+        normalized_department = str(department).strip().lower()
+
+        filtered_employees = [
+            employee
+            for employee in filtered_employees
+            if str(employee.get("department", "")).strip().lower()
+            == normalized_department
+        ]
+
+    # --------------------------------------------------------
+    # RETURN RESULTS
+    # --------------------------------------------------------
+
+    if employee_id is not None:
+        return filtered_employees[0] if filtered_employees else None
+
+    if employee_name is not None and len(filtered_employees) == 1:
+        return filtered_employees[0]
+
+    return filtered_employees
 
 # get project metrics
 
