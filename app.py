@@ -354,6 +354,27 @@ with st.sidebar:
     st.divider()
 
     # ==================================================
+    # DOCUMENT UPLOAD
+    # ==================================================
+
+    st.markdown("### 📄 Upload Documents")
+
+    uploaded_files = st.file_uploader(
+        "Select documents to upload",
+        type=["pdf", "txt", "docx"],
+        accept_multiple_files=True,
+        key="document_uploader"
+    )
+
+    if uploaded_files:
+        st.caption(
+            f"{len(uploaded_files)} document(s) selected."
+        )
+
+    st.divider()
+
+
+    # ==================================================
     # GEMINI MODEL SELECTION
     # ==================================================
 

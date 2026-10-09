@@ -804,7 +804,15 @@ Do not repeat an identical tool call.
                     )
 
                     # Execute tool only if authorized
-                    result = tool_function(**arguments)
+                    if tool_name == "search_knowledge_base_tool":
+                        result = tool_function(
+                            **arguments,
+                            user_id = user_id
+                        )
+                    else:
+                        result = tool_function(
+                            **arguments
+                        )
 
             except Exception as error:
 
