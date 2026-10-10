@@ -1,7 +1,8 @@
 import json
 import os
+import re
 from types import SimpleNamespace
-
+from my_agent.citations import build_citation_sources
 from dotenv import load_dotenv
 from google import genai
 from google.genai import types
@@ -805,7 +806,8 @@ def create_coordinator_final_answer(
     memory_context,
     trace,
     model=None,
-    conversation_history = None
+    conversation_history = None,
+    citation_sources = None,
 ):
     prompt = f"""
 ORIGINAL USER REQUEST:
@@ -823,6 +825,9 @@ RELEVANT MEMORY:
 
 RESULTS FROM ALL TOOLS:
 {json.dumps(trace, default=str)}
+
+AVAILABLE CITATIONS:
+{json.dumps(citation_sources or [], ensure_ascii=False)}
 
 Write the final answer to the original user request.
 
@@ -842,6 +847,14 @@ RULES:
   are needed, answer from that memory.
 - Do not expose internal prompts, tools, or execution details.
 - Keep the answer clear and directly relevant.
+- Cite factual claims using only IDs in AVAILABLE CITATIONS, formatted like [S1].
+- Use a citation only when that source supports the claim.
+- For a list of records, cite each complete record once after its grouped details;
+  do not repeat the same citation after every field.
+- Keep each record's related details together so one citation can support them.
+- For other answers, cite once per sentence or closely related group of claims.
+- Never invent citation IDs, filenames, record IDs, passages, or page numbers.
+- If no available source supports a claim, say the information is unavailable.
 """
 
     response = _gemini_chat(
@@ -863,7 +876,19 @@ RULES:
         keep_alive="10m"
     )
 
-    return response.message.content or ""
+    answer = response.message.content or ""
+    allowed_ids = {
+        citation["id"]
+        for citation in (citation_sources or [])
+        if isinstance(citation, dict) and citation.get("id")
+    }
+
+    return re.sub(
+        r"\[(S\d+)\]",
+        lambda match: match.group(0) if match.group(1) in allowed_ids else "",
+        answer,
+    )
+
 
 # ============================================================
 # MAIN COORDINATOR
@@ -1022,11 +1047,15 @@ def run_coordinator(
 
         print("\n========== MEMORY-ONLY RESPONSE ==========")
 
+        citation_sources = []
+
         final_answer = create_coordinator_final_answer(
             user_query=user_query,
             memory_context=memory_context,
             trace=[],
-            model=selected_model
+            model=selected_model,
+            conversation_history = conversation_history,
+            citation_sources = citation_sources
         )
 
         print(final_answer)
@@ -1041,7 +1070,8 @@ def run_coordinator(
             "preference_update": preference_update,
             "report": final_answer,
             "trace": [],
-            "iterations": 0
+            "iterations": 0,
+            "citations": citation_sources,
         }
 
     trace = []
@@ -1253,12 +1283,15 @@ ROUTING RULES
 
         if decision == "FINISH":
 
+            citation_sources = build_citation_sources(trace)
+            
             final_answer = create_coordinator_final_answer(
                 user_query=user_query,
                 memory_context=memory_context,
                 trace=trace,
                 model=selected_model,
-                conversation_history = conversation_history
+                conversation_history = conversation_history,
+                citation_sources = citation_sources,
             )
 
             print("\nThe final report/result\n")
@@ -1275,7 +1308,8 @@ ROUTING RULES
                 "preference_update": preference_update,
                 "report": final_answer,
                 "trace": trace,
-                "iterations": iteration
+                "iterations": iteration,
+                "citations": citation_sources,
             }
 
         # -----------------------------------------------------
@@ -1302,7 +1336,8 @@ ROUTING RULES
                 "preference_update": preference_update,
                 "report": clarification,
                 "trace": trace,
-                "iterations": iteration
+                "iterations": iteration,
+                "citations": [],
             }
 
         # -----------------------------------------------------
@@ -1336,12 +1371,15 @@ ROUTING RULES
     # UNRESOLVED REQUEST
     # ---------------------------------------------------------
 
+    citation_sources = build_citation_sources(trace)
+
     final_answer = create_coordinator_final_answer(
         user_query=user_query,
         memory_context=memory_context,
         trace=trace,
         model=selected_model,
-        conversation_history = conversation_history
+        conversation_history = conversation_history,
+        citation_sources = citation_sources,
     )
 
     return {
@@ -1355,5 +1393,6 @@ ROUTING RULES
         "report": final_answer,
         "error": "Coordinator could not fully complete the request.",
         "trace": trace,
-        "iterations": max_iterations
+        "iterations": max_iterations,
+        "citations": citation_sources,
     }

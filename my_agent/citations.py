@@ -1,9 +1,20 @@
+import re
+
+
 def build_citation_sources(trace):
     """Build verified citation references from coordinator tool results."""
     citations = []
     seen = set()
 
-    def add(source_type, source, record_id, label, passage=None, page=None):
+    def add(
+        source_type,
+        source,
+        record_id,
+        label,
+        passage=None,
+        page=None,
+        page_type=None,
+    ):
         key = (source_type, source, record_id)
 
         if key in seen:
@@ -24,6 +35,9 @@ def build_citation_sources(trace):
         if page is not None:
             citation["page"] = page
 
+        if page_type is not None:
+            citation["page_type"] = page_type
+
         citations.append(citation)
 
     def add_document_results(results):
@@ -38,6 +52,7 @@ def build_citation_sources(trace):
             scope = item.get("document_scope", "unknown")
             chunk_index = item.get("chunk_index")
             page = item.get("page")
+            page_type = item.get("page_type")
 
             if scope == "knowledge_base":
                 source = f"Knowledge_base/{filename}"
@@ -48,7 +63,8 @@ def build_citation_sources(trace):
 
             record_id = f"chunk {chunk_index}"
             if page is not None:
-                label += f", page {page}"
+                page_label = "virtual page" if page_type == "virtual" else "page"
+                label += f", {page_label} {page}"
 
             add(
                 source_type="document",
@@ -57,6 +73,7 @@ def build_citation_sources(trace):
                 label=label,
                 passage=item["text"],
                 page=page,
+                page_type=page_type,
             )
 
     def add_json_results(tool_name, arguments, result):
@@ -182,3 +199,54 @@ def build_citation_sources(trace):
                 add_json_results(tool_name, arguments, tool_result)
 
     return citations
+
+
+def format_answer_citations(answer, citations):
+    """Replace internal citation IDs with readable source references."""
+    citations_by_id = {
+        citation["id"]: citation
+        for citation in citations or []
+        if isinstance(citation, dict) and citation.get("id")
+    }
+    displayed_ids = set()
+
+    def replace_marker(match):
+        citation_id = match.group(1)
+        citation = citations_by_id.get(citation_id)
+
+        if citation is None:
+            return match.group(0)
+
+        if citation_id in displayed_ids:
+            return ""
+
+        displayed_ids.add(citation_id)
+
+        source = str(citation.get("source", "Unknown source")).strip()
+        if source.lower().startswith("uploaded document:"):
+            source = source.partition(":")[2].strip()
+        else:
+            source = source.replace("\\", "/").rsplit("/", 1)[-1]
+
+        record_id = citation.get("record_id")
+        page = citation.get("page")
+        if page is not None:
+            page_label = (
+                "virtual page"
+                if citation.get("page_type") == "virtual"
+                else "page"
+            )
+            if record_id:
+                return (
+                    f"[Source: {source}, {page_label} {page}, "
+                    f"{record_id}]"
+                )
+            return f"[Source: {source}, {page_label} {page}]"
+
+        if record_id:
+            return f"[Source: {source}, {record_id}]"
+
+        return f"[Source: {source}]"
+
+    formatted_answer = re.sub(r"\[(S\d+)\]", replace_marker, answer or "")
+    return re.sub(r"[ \t]+([,.;:])", r"\1", formatted_answer)

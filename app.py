@@ -1,10 +1,15 @@
+import re
 import streamlit as st
 from io import BytesIO
 from pypdf import PdfReader
 from docx import Document
 
 from my_agent.Coordinator_agent import run_coordinator
-from my_agent.database import save_document, initialize_database
+from my_agent.citations import format_answer_citations
+from my_agent.database import (
+    initialize_database,
+    save_document,
+)
 from my_agent.rag import index_uploaded_documents
 
 
@@ -362,6 +367,70 @@ def render_execution_details(
                     icon="🤖"
                 )
 
+#==================================================
+# Render Citations
+#==================================================
+
+def render_citations(answer, citations):
+    """Display sources referenced by citation markers in the answer."""
+    cited_ids = set(re.findall(r"\[(S\d+)\]", answer or ""))
+
+    cited_sources = [
+        citation
+        for citation in citations or []
+        if isinstance(citation, dict)
+        and citation.get("id") in cited_ids
+    ]
+
+    if not cited_sources:
+        return
+
+    with st.expander("📚 Sources"):
+        for citation in cited_sources:
+            st.text(
+                f"[{citation['id']}] {citation.get('label', 'Source')}"
+            )
+            st.caption(
+                f"{citation.get('source', '')} · "
+                f"{citation.get('record_id', '')}"
+            )
+
+            passage = citation.get("passage")
+            if passage:
+                st.text(passage)
+
+
+def extract_document_for_index(filename, file_bytes):
+    """Extract searchable text and page metadata from an uploaded file."""
+    if filename.lower().endswith(".pdf"):
+        reader = PdfReader(BytesIO(file_bytes))
+        pages = [
+            {
+                "page": page_number,
+                "page_type": "physical",
+                "text": page.extract_text() or "",
+            }
+            for page_number, page in enumerate(reader.pages, start=1)
+        ]
+        return {
+            "source": filename,
+            "text": "\n".join(page["text"] for page in pages),
+            "pages": pages,
+        }
+
+    if filename.lower().endswith(".docx"):
+        document = Document(BytesIO(file_bytes))
+        text = "\n".join(paragraph.text for paragraph in document.paragraphs)
+    elif filename.lower().endswith(".txt"):
+        text = file_bytes.decode("utf-8-sig")
+    else:
+        raise ValueError(f"Unsupported document type: {filename}")
+
+    return {
+        "source": filename,
+        "text": text,
+    }
+
 
 # ==================================================
 # SIDEBAR
@@ -413,6 +482,11 @@ with st.sidebar:
         key="document_uploader"
     )
 
+    st.caption(
+        "PDF citations use actual page numbers. TXT, DOCX, and built-in "
+        "knowledge-base citations use generated virtual pages."
+    )
+
     if uploaded_files:
 
         st.caption(
@@ -432,33 +506,11 @@ with st.sidebar:
                         filename = uploaded_file.name
                         file_type = uploaded_file.type
 
-                        # Extract text from the document
-                        if filename.lower().endswith(".pdf"):
-
-                            reader = PdfReader(
-                                BytesIO(file_bytes)
-                            )
-
-                            extracted_text = "\n".join(
-                                page.extract_text() or ""
-                                for page in reader.pages
-                            )
-
-                        elif filename.lower().endswith(".docx"):
-
-                            doc = Document(
-                                BytesIO(file_bytes)
-                            )
-
-                            extracted_text = "\n".join(
-                                paragraph.text
-                                for paragraph in doc.paragraphs
-                            )
-
-                        else:
-                            extracted_text = file_bytes.decode(
-                                "utf-8-sig"
-                            )
+                        document_for_index = extract_document_for_index(
+                            filename,
+                            file_bytes
+                        )
+                        extracted_text = document_for_index["text"]
 
                         if not extracted_text.strip():
 
@@ -478,10 +530,7 @@ with st.sidebar:
                         )
 
                         # Prepare extracted text for ChromaDB
-                        documents_to_index.append({
-                            "source": filename,
-                            "text": extracted_text
-                        })
+                        documents_to_index.append(document_for_index)
 
                     # Index extracted text in ChromaDB
                     if documents_to_index:
@@ -665,17 +714,24 @@ for message in st.session_state.messages:
     with st.chat_message(message["role"]):
 
         st.markdown(
-            message["content"]
+            format_answer_citations(
+                message["content"],
+                message.get("citations", []),
+            )
         )
 
-        if message["role"] == "assistant" and "trace" in message:
-
-            render_execution_details(
-                message["trace"],
-                message.get("iterations", 0),
-                message.get("memory_context")
+        if message["role"] == "assistant":
+            render_citations(
+                message["content"],
+                message.get("citations", []),
             )
 
+            if "trace" in message:
+                render_execution_details(
+                    message["trace"],
+                    message.get("iterations", 0),
+                    message.get("memory_context")
+                )
 
 # ==================================================
 # EMPTY STATE
@@ -776,7 +832,13 @@ if query:
                     {}
                 )
 
-                st.markdown(response)
+                citations = result.get("citations", [])
+
+                st.markdown(
+                    format_answer_citations(response, citations)
+                )
+
+                render_citations(response, citations)
 
                 render_execution_details(
                     trace,
@@ -789,7 +851,8 @@ if query:
                     "content": response,
                     "trace": trace,
                     "iterations": iterations,
-                    "memory_context": memory_context
+                    "memory_context": memory_context,
+                    "citations": citations,
                 })
 
             # ------------------------------------------
@@ -803,11 +866,17 @@ if query:
                     "The Coordinator could not complete the request."
                 )
 
-                st.error(response)
+                citations = result.get("citations", [])
+
+                st.error(
+                    format_answer_citations(response, citations)
+                )
+                render_citations(response, citations)
 
                 st.session_state.messages.append({
                     "role": "assistant",
-                    "content": response
+                    "content": response,
+                    "citations": citations,
                 })
 
         # ----------------------------------------------
