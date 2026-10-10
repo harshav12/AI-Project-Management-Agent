@@ -218,6 +218,21 @@ role_permissions = {
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
+def get_recent_conversation(messages, max_messages=8, max_chars=6000):
+    """Return recent user/assistant text messages within a size limit."""
+    history = [
+        {"role": message["role"], "content": message["content"]}
+        for message in messages
+        if isinstance(message, dict)
+        and message.get("role") in {"user", "assistant"}
+        and isinstance(message.get("content"), str)
+        and message["content"].strip()
+    ][-max_messages:]
+
+    while history and sum(len(message["content"]) for message in history) > max_chars:
+        history.pop(0)
+
+    return history
 
 # ==================================================
 # EXECUTION DETAILS
@@ -688,6 +703,10 @@ query = st.chat_input(
 
 if query:
 
+    conversation_history = get_recent_conversation(
+        st.session_state.messages
+    )
+
     st.session_state.messages.append({
         "role": "user",
         "content": query
@@ -709,7 +728,8 @@ if query:
                 result = run_coordinator(
                     user_id=user_id,
                     user_query=query,
-                    model=selected_model
+                    model=selected_model,
+                    conversation_history = conversation_history
                 )
 
             # ------------------------------------------

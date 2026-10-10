@@ -568,7 +568,8 @@ def create_coordinator_plan(
     user_id,
     user_query,
     memory_context,
-    model=None
+    model=None,
+    conversation_history = None
 ):
     prompt = f"""
 USER ID:
@@ -576,6 +577,12 @@ USER ID:
 
 ORIGINAL USER REQUEST:
 {user_query}
+
+RECENT CONVERSATION:
+{json.dumps(conversation_history or [], ensure_ascii = False)}
+use the recent conversation only to understand references or follow-ups.
+The latest user message is the request to handle now, If the reference
+cannot be resolved from the conversation, ask the user for clarification.
 
 RELEVANT MEMORY:
 {json.dumps(memory_context, default=str)}
@@ -797,11 +804,19 @@ def create_coordinator_final_answer(
     user_query,
     memory_context,
     trace,
-    model=None
+    model=None,
+    conversation_history = None
 ):
     prompt = f"""
 ORIGINAL USER REQUEST:
 {user_query}
+
+RECENT CONVERSATION:
+{json.dumps(conversation_history or [], ensure_ascii = False)}
+
+- Use recent conversation only to understand references in the latest request.
+- The latest user message overrides conflicting earlier context. 
+- If a reference remains unclear, ask the user to clarify. 
 
 RELEVANT MEMORY:
 {json.dumps(memory_context, default=str)}
@@ -843,7 +858,7 @@ RULES:
         ],
         options={
             "temperature": 0,
-            "num_predict": 600
+            "num_predict": 2000
         },
         keep_alive="10m"
     )
@@ -858,7 +873,8 @@ def run_coordinator(
     user_id,
     user_query,
     model=None,
-    max_iterations=10
+    max_iterations=10,
+    conversation_history = None
 ):
     """
     Run the Coordinator.
@@ -886,6 +902,7 @@ def run_coordinator(
     user_query = str(user_query).strip()
     original_user_query = user_query
 
+    conversation_history = conversation_history or []
     # ---------------------------------------------------------
     # SELECTED MODEL
     # ---------------------------------------------------------
@@ -990,7 +1007,8 @@ def run_coordinator(
         user_id=user_id,
         user_query=user_query,
         memory_context=memory_context,
-        model=selected_model
+        model=selected_model,
+        conversation_history = conversation_history
     )
 
     print("\n========== COORDINATOR PLAN ==========\n")
@@ -1048,6 +1066,14 @@ def run_coordinator(
                     "content": f"""
 ORIGINAL USER REQUEST:
 {user_query}
+
+RECENT CONVERSATION:
+{json.dumps(conversation_history, ensure_ascii=False)}
+
+Use this conversation only to resolve references in the latest request.
+When calling a specialist, make its request self-contained: include the
+resolved project, task, or employee reference when known. If it cannot be
+resolved, ask the user for clarification instead of guessing.
 
 CURRENT PLAN:
 {current_plan}
@@ -1231,7 +1257,8 @@ ROUTING RULES
                 user_query=user_query,
                 memory_context=memory_context,
                 trace=trace,
-                model=selected_model
+                model=selected_model,
+                conversation_history = conversation_history
             )
 
             print("\nThe final report/result\n")
@@ -1313,7 +1340,8 @@ ROUTING RULES
         user_query=user_query,
         memory_context=memory_context,
         trace=trace,
-        model=selected_model
+        model=selected_model,
+        conversation_history = conversation_history
     )
 
     return {

@@ -600,7 +600,7 @@ what could and could not be determined.
             }
         ],
         temperature=0,
-        max_output_tokens=600
+        max_output_tokens=2000
     )
 
     return response.message.content or ""
@@ -692,7 +692,7 @@ Do not repeat an identical tool call.
             messages=messages,
             tools=task_tools,
             temperature=0,
-            max_output_tokens=600
+            max_output_tokens=2000
         )
 
         tool_calls = response.message.tool_calls or []
